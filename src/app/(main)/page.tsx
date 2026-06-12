@@ -38,13 +38,6 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen">
 
-      {/* ── Announcement bar ── */}
-      <div className="bg-neutral-100 border-b border-neutral-200 text-center py-2 px-4">
-        <p className="text-[11px] font-medium text-neutral-700 tracking-wide">
-          Free shipping &amp; easy returns for 365 days &nbsp;·&nbsp; Up to 40% off Spring Edit
-        </p>
-      </div>
-
       {/* ── Hero ── */}
       <section className="relative min-h-[420px] sm:min-h-[560px] lg:min-h-[680px] flex items-center justify-center text-center bg-neutral-900 overflow-hidden">
         <Image
