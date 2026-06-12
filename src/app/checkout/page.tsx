@@ -9,20 +9,36 @@ import { formatPrice } from "@/lib/utils";
 import type { Address } from "@/types";
 
 /* ─── Square SDK types ─────────────────────────────────────────────────── */
+interface SqTokenResult {
+  status: string;
+  token?: string;
+  errors?: { message: string }[];
+}
+interface SquareCard {
+  attach: (selector: string) => Promise<void>;
+  tokenize: () => Promise<SqTokenResult>;
+  destroy: () => void;
+}
+interface SqExpressButton {
+  attach: (selector: string) => Promise<void>;
+  destroy: () => void;
+  addEventListener: (event: string, handler: (e: { detail: SqTokenResult }) => void) => void;
+}
+interface SqPaymentRequest {
+  [key: string]: unknown;
+}
+interface SquarePayments {
+  card: (options?: Record<string, unknown>) => Promise<SquareCard>;
+  paymentRequest: (opts: Record<string, unknown>) => SqPaymentRequest;
+  googlePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
+  applePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
+}
 declare global {
   interface Window {
     Square?: {
       payments: (appId: string, locationId: string) => Promise<SquarePayments>;
     };
   }
-}
-interface SquarePayments {
-  card: (options?: Record<string, unknown>) => Promise<SquareCard>;
-}
-interface SquareCard {
-  attach: (selector: string) => Promise<void>;
-  tokenize: () => Promise<{ status: string; token?: string; errors?: { message: string }[] }>;
-  destroy: () => void;
 }
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
@@ -195,7 +211,11 @@ export default function CheckoutPage() {
   const [payError, setPayError] = useState<string | null>(null);
   const [cardMounted, setCardMounted] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const [googlePayMounted, setGooglePayMounted] = useState(false);
+  const [applePayMounted, setApplePayMounted] = useState(false);
   const cardRef = useRef<SquareCard | null>(null);
+  const googlePayRef = useRef<SqExpressButton | null>(null);
+  const applePayRef = useRef<SqExpressButton | null>(null);
 
   const items = cart?.contents?.nodes ?? [];
   const shippingCost = shipMethod === "express" ? 12 : shipMethod === "overnight" ? 24 : 0;
@@ -214,7 +234,7 @@ export default function CheckoutPage() {
     document.head.appendChild(script);
   }, []);
 
-  /* Mount Square card */
+  /* Mount Square card + express checkout buttons */
   useEffect(() => {
     if (!sdkReady) return;
     let active = true;
@@ -227,6 +247,8 @@ export default function CheckoutPage() {
           process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!
         );
         if (!active) return;
+
+        // ── Card form ──
         const card = await p.card({
           style: {
             ".input-container": { borderColor: "#D4D4D4", borderRadius: "5px" },
@@ -241,6 +263,59 @@ export default function CheckoutPage() {
         if (!active) { card.destroy(); return; }
         cardRef.current = card;
         setCardMounted(true);
+
+        // ── Payment request (used by express buttons) ──
+        const amountCents = Math.round(totalNum * 100);
+        const paymentRequest = p.paymentRequest({
+          countryCode: "US",
+          currencyCode: "USD",
+          total: { amount: String(amountCents), label: "Noir & Blanc" },
+          requestBillingContact: false,
+          requestShippingContact: false,
+        });
+
+        // ── Google Pay ──
+        try {
+          const gp = await p.googlePay(paymentRequest);
+          if (!active) { gp.destroy(); return; }
+          await gp.attach("#sq-google-pay");
+          if (!active) { gp.destroy(); return; }
+          gp.addEventListener("ontokenization", async (e) => {
+            const { status, token, errors } = e.detail;
+            if (status !== "OK" || !token) {
+              setPayError(errors?.[0]?.message ?? "Google Pay failed");
+              return;
+            }
+            await chargeToken(token);
+          });
+          googlePayRef.current = gp;
+          setGooglePayMounted(true);
+        } catch {
+          // Google Pay not available in this browser/env — silently hide
+          console.info("[Square] Google Pay not available");
+        }
+
+        // ── Apple Pay ──
+        try {
+          const ap = await p.applePay(paymentRequest);
+          if (!active) { ap.destroy(); return; }
+          await ap.attach("#sq-apple-pay");
+          if (!active) { ap.destroy(); return; }
+          ap.addEventListener("ontokenization", async (e) => {
+            const { status, token, errors } = e.detail;
+            if (status !== "OK" || !token) {
+              setPayError(errors?.[0]?.message ?? "Apple Pay failed");
+              return;
+            }
+            await chargeToken(token);
+          });
+          applePayRef.current = ap;
+          setApplePayMounted(true);
+        } catch {
+          // Apple Pay not available (requires HTTPS + domain verification)
+          console.info("[Square] Apple Pay not available");
+        }
+
       } catch (e) {
         console.error("[Square] mount error:", e);
       }
@@ -250,26 +325,23 @@ export default function CheckoutPage() {
     return () => {
       active = false;
       if (cardRef.current) { cardRef.current.destroy(); cardRef.current = null; }
+      if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; }
+      if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; }
       setCardMounted(false);
+      setGooglePayMounted(false);
+      setApplePayMounted(false);
     };
-  }, [sdkReady]);
+  }, [sdkReady, totalNum]);
 
-  async function handlePay() {
-    if (!cardRef.current || !email) return;
+  async function chargeToken(token: string) {
     setPayError(null);
     setPaying(true);
     try {
-      const result = await cardRef.current.tokenize();
-      if (result.status !== "OK" || !result.token) {
-        setPayError(result.errors?.[0]?.message ?? "Card tokenization failed");
-        setPaying(false);
-        return;
-      }
       const res = await fetch("/api/square/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceId: result.token,
+          sourceId: token,
           amountCents: Math.round(totalNum * 100),
           buyerEmail: email,
         }),
@@ -288,6 +360,20 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handlePay() {
+    if (!cardRef.current) return;
+    setPayError(null);
+    setPaying(true);
+    const result = await cardRef.current.tokenize();
+    if (result.status !== "OK" || !result.token) {
+      setPayError(result.errors?.[0]?.message ?? "Card tokenization failed");
+      setPaying(false);
+      return;
+    }
+    await chargeToken(result.token);
+  }
+
+  const hasExpressCheckout = googlePayMounted || applePayMounted;
   const subtotalDisplay = formatPrice(cart?.subtotal) || `$${totalNum.toFixed(2)}`;
 
   return (
@@ -358,26 +444,38 @@ export default function CheckoutPage() {
           {/* ── LEFT: Form ── */}
           <div className="py-8 lg:py-10">
 
-            {/* Express checkout */}
-            <div className="mb-6">
-              <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 h-[44px] rounded-[5px] bg-[#5A31F4] text-white text-sm font-semibold hover:bg-[#4a28d4] transition-colors">
-                  <svg width="40" height="14" viewBox="0 0 80 24" fill="white"><text x="0" y="18" fontSize="16" fontWeight="bold" fontFamily="sans-serif">shop</text></svg>
-                </button>
-                <button className="flex items-center justify-center h-[44px] rounded-[5px] border border-[#D4D4D4] bg-white hover:bg-neutral-50 transition-colors px-4">
-                  <svg width="46" height="18" viewBox="0 0 46 18" fill="none">
-                    <text x="0" y="14" fontSize="13" fontFamily="sans-serif" fontWeight="500" fill="#4285F4">G</text>
-                    <text x="9" y="14" fontSize="13" fontFamily="sans-serif" fill="#333">Pay</text>
-                  </svg>
-                </button>
+            {/* Express checkout — Square Google Pay + Apple Pay */}
+            {hasExpressCheckout && (
+              <div className="mb-6">
+                <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
+                <div className={`grid gap-3 ${googlePayMounted && applePayMounted ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {/* Google Pay — Square renders its own button inside this div */}
+                  <div
+                    id="sq-google-pay"
+                    className={googlePayMounted ? "block" : "hidden"}
+                    style={{ height: 44 }}
+                  />
+                  {/* Apple Pay — Square renders its own button inside this div */}
+                  <div
+                    id="sq-apple-pay"
+                    className={applePayMounted ? "block" : "hidden"}
+                    style={{ height: 44 }}
+                  />
+                </div>
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="flex-1 h-px bg-[#E0E0E0]" />
+                  <span className="text-xs text-[#717171]">Or</span>
+                  <div className="flex-1 h-px bg-[#E0E0E0]" />
+                </div>
               </div>
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex-1 h-px bg-[#E0E0E0]" />
-                <span className="text-xs text-[#717171]">Or</span>
-                <div className="flex-1 h-px bg-[#E0E0E0]" />
-              </div>
-            </div>
+            )}
+            {/* Always render the hidden containers so Square can attach before we know if they're available */}
+            {!hasExpressCheckout && (
+              <>
+                <div id="sq-google-pay" className="hidden" />
+                <div id="sq-apple-pay" className="hidden" />
+              </>
+            )}
 
             {/* Contact */}
             <section className="mb-6">
