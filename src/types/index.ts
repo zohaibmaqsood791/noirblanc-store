@@ -35,10 +35,10 @@ export interface ProductVariation {
 export interface CartItem {
   key: string;
   product: {
-    node: Pick<Product, "id" | "name" | "slug" | "price" | "image">;
+    node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image">;
   };
   variation?: {
-    node: Pick<ProductVariation, "id" | "name" | "price" | "attributes">;
+    node: Pick<ProductVariation, "id" | "databaseId" | "name" | "price" | "attributes">;
   };
   quantity: number;
   total: string;

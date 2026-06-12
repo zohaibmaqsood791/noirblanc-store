@@ -20,9 +20,11 @@ interface SquareCard {
   destroy: () => void;
 }
 interface SqExpressButton {
-  attach: (selector: string) => Promise<void>;
+  attach?: (selector: string) => Promise<void>;
+  tokenize?: () => void;
   destroy: () => void;
   addEventListener: (event: string, handler: (e: { detail: SqTokenResult }) => void) => void;
+  removeEventListener: (event: string, handler: (e: { detail: SqTokenResult }) => void) => void;
 }
 interface SqPaymentRequest {
   [key: string]: unknown;
@@ -264,21 +266,20 @@ export default function CheckoutPage() {
         cardRef.current = card;
         setCardMounted(true);
 
-        // ── Payment request (used by express buttons) ──
-        const amountCents = Math.round(totalNum * 100);
-        const paymentRequest = p.paymentRequest({
+        // ── Separate paymentRequest objects for each button (can't share one instance) ──
+        const makeRequest = () => p.paymentRequest({
           countryCode: "US",
           currencyCode: "USD",
-          total: { amount: String(amountCents), label: "Noir & Blanc" },
+          total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
           requestBillingContact: false,
           requestShippingContact: false,
         });
 
         // ── Google Pay ──
         try {
-          const gp = await p.googlePay(paymentRequest);
+          const gp = await p.googlePay(makeRequest());
           if (!active) { gp.destroy(); return; }
-          await gp.attach("#sq-google-pay");
+          await gp.attach!("#sq-google-pay");
           if (!active) { gp.destroy(); return; }
           gp.addEventListener("ontokenization", async (e) => {
             const { status, token, errors } = e.detail;
@@ -296,12 +297,11 @@ export default function CheckoutPage() {
         }
 
         // ── Apple Pay ──
+        // Apple Pay uses tokenize() on click — no attach() like Google Pay
         try {
-          const ap = await p.applePay(paymentRequest);
-          if (!active) { ap.destroy(); return; }
-          await ap.attach("#sq-apple-pay");
-          if (!active) { ap.destroy(); return; }
-          ap.addEventListener("ontokenization", async (e) => {
+          const ap = await p.applePay(makeRequest()) as any;
+          if (!active) { ap?.destroy?.(); return; }
+          ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
             const { status, token, errors } = e.detail;
             if (status !== "OK" || !token) {
               setPayError(errors?.[0]?.message ?? "Apple Pay failed");
@@ -312,7 +312,7 @@ export default function CheckoutPage() {
           applePayRef.current = ap;
           setApplePayMounted(true);
         } catch {
-          // Apple Pay not available (requires HTTPS + domain verification)
+          // Apple Pay not available in this browser/device — silently hide
           console.info("[Square] Apple Pay not available");
         }
 
@@ -337,13 +337,26 @@ export default function CheckoutPage() {
     setPayError(null);
     setPaying(true);
     try {
+      // Build items list from cart for WooCommerce order creation
+      const wcItems = items.map((item) => ({
+        productId:   item.product.node.databaseId,
+        variationId: item.variation?.node.databaseId ?? undefined,
+        quantity:    item.quantity,
+        name:        item.product.node.name,
+      }));
+
       const res = await fetch("/api/square/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceId: token,
-          amountCents: Math.round(totalNum * 100),
-          buyerEmail: email,
+          sourceId:       token,
+          amountCents:    Math.round(totalNum * 100),
+          buyerEmail:     email,
+          billing:        { ...address, email },
+          shipping:       address,
+          items:          wcItems,
+          shippingMethod: shipMethod,
+          shippingTotal:  shippingCost,
         }),
       });
       const data = await res.json();
@@ -353,7 +366,10 @@ export default function CheckoutPage() {
         return;
       }
       setCart(null);
-      router.push(`/checkout/success?payment=${data.paymentId}`);
+      const successParams = data.orderNumber
+        ? `order=${data.orderNumber}`
+        : `payment=${data.paymentId}`;
+      router.push(`/checkout/success?${successParams}`);
     } catch {
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
@@ -444,38 +460,37 @@ export default function CheckoutPage() {
           {/* ── LEFT: Form ── */}
           <div className="py-8 lg:py-10">
 
-            {/* Express checkout — Square Google Pay + Apple Pay */}
-            {hasExpressCheckout && (
-              <div className="mb-6">
+            {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
+            <div className={hasExpressCheckout ? "mb-6" : ""}>
+              {hasExpressCheckout && (
                 <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
-                <div className={`grid gap-3 ${googlePayMounted && applePayMounted ? "grid-cols-2" : "grid-cols-1"}`}>
-                  {/* Google Pay — Square renders its own button inside this div */}
-                  <div
-                    id="sq-google-pay"
-                    className={googlePayMounted ? "block" : "hidden"}
-                    style={{ height: 44 }}
+              )}
+              <div className={`grid gap-3 ${googlePayMounted && applePayMounted ? "grid-cols-2" : "grid-cols-1"}`}>
+                {/* Google Pay — Square injects iframe here, must never be unmounted */}
+                <div
+                  id="sq-google-pay"
+                  style={{ height: googlePayMounted ? 44 : 0, overflow: "hidden" }}
+                />
+                {/* Apple Pay — native button using WebKit CSS, calls tokenize() on click */}
+                {applePayMounted && (
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore — WebKit-specific CSS properties for Apple Pay button
+                  <button
+                    type="button"
+                    onClick={() => applePayRef.current?.tokenize?.()}
+                    className="apple-pay-button"
+                    aria-label="Buy with Apple Pay"
                   />
-                  {/* Apple Pay — Square renders its own button inside this div */}
-                  <div
-                    id="sq-apple-pay"
-                    className={applePayMounted ? "block" : "hidden"}
-                    style={{ height: 44 }}
-                  />
-                </div>
+                )}
+              </div>
+              {hasExpressCheckout && (
                 <div className="flex items-center gap-3 mt-4">
                   <div className="flex-1 h-px bg-[#E0E0E0]" />
                   <span className="text-xs text-[#717171]">Or</span>
                   <div className="flex-1 h-px bg-[#E0E0E0]" />
                 </div>
-              </div>
-            )}
-            {/* Always render the hidden containers so Square can attach before we know if they're available */}
-            {!hasExpressCheckout && (
-              <>
-                <div id="sq-google-pay" className="hidden" />
-                <div id="sq-apple-pay" className="hidden" />
-              </>
-            )}
+              )}
+            </div>
 
             {/* Contact */}
             <section className="mb-6">

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Raleway, Poppins } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 
 const raleway = Raleway({
   subsets: ["latin"],
@@ -27,17 +25,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://noirblanc.store"),
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <body className="font-body antialiased bg-white text-neutral-900">
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

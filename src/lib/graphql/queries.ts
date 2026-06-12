@@ -165,6 +165,7 @@ export const CART_FIELDS = gql`
         product {
           node {
             id
+            databaseId
             name
             slug
             image { sourceUrl altText }
@@ -175,6 +176,7 @@ export const CART_FIELDS = gql`
         variation {
           node {
             id
+            databaseId
             name
             price
             attributes { nodes { name value } }
