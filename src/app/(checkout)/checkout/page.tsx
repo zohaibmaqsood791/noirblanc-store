@@ -218,6 +218,9 @@ export default function CheckoutPage() {
   const cardRef = useRef<SquareCard | null>(null);
   const googlePayRef = useRef<SqExpressButton | null>(null);
   const applePayRef = useRef<SqExpressButton | null>(null);
+  // Keep chargeToken ref so express-pay event listeners always call the latest version
+  // (avoids stale closure capturing old email/address/cart state)
+  const chargeTokenRef = useRef<(token: string) => Promise<void>>(async () => {});
 
   const items = cart?.contents?.nodes ?? [];
   const shippingCost = shipMethod === "express" ? 12 : shipMethod === "overnight" ? 24 : 0;
@@ -266,6 +269,9 @@ export default function CheckoutPage() {
         cardRef.current = card;
         setCardMounted(true);
 
+        // Guard: don't initialize express pay with a $0 amount — it will be rejected
+        if (totalNum <= 0) return;
+
         // ── Separate paymentRequest objects for each button (can't share one instance) ──
         const makeRequest = () => p.paymentRequest({
           countryCode: "US",
@@ -284,16 +290,19 @@ export default function CheckoutPage() {
           gp.addEventListener("ontokenization", async (e) => {
             const { status, token, errors } = e.detail;
             if (status !== "OK" || !token) {
-              setPayError(errors?.[0]?.message ?? "Google Pay failed");
+              const msg = errors?.[0]?.message ?? `Google Pay failed (${status})`;
+              console.error("[GPay] tokenization failed:", status, errors);
+              setPayError(msg);
               return;
             }
-            await chargeToken(token);
+            // Use ref so we always call the latest chargeToken with current form state
+            await chargeTokenRef.current(token);
           });
           googlePayRef.current = gp;
           setGooglePayMounted(true);
-        } catch {
+        } catch (gpErr) {
           // Google Pay not available in this browser/env — silently hide
-          console.info("[Square] Google Pay not available");
+          console.info("[Square] Google Pay not available:", gpErr);
         }
 
         // ── Apple Pay ──
@@ -304,16 +313,18 @@ export default function CheckoutPage() {
           ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
             const { status, token, errors } = e.detail;
             if (status !== "OK" || !token) {
-              setPayError(errors?.[0]?.message ?? "Apple Pay failed");
+              const msg = errors?.[0]?.message ?? `Apple Pay failed (${status})`;
+              console.error("[APay] tokenization failed:", status, errors);
+              setPayError(msg);
               return;
             }
-            await chargeToken(token);
+            await chargeTokenRef.current(token);
           });
           applePayRef.current = ap;
           setApplePayMounted(true);
-        } catch {
+        } catch (apErr) {
           // Apple Pay not available in this browser/device — silently hide
-          console.info("[Square] Apple Pay not available");
+          console.info("[Square] Apple Pay not available:", apErr);
         }
 
       } catch (e) {
@@ -388,6 +399,9 @@ export default function CheckoutPage() {
     }
     await chargeToken(result.token);
   }
+
+  // Sync ref every render so ontokenization listeners always call latest chargeToken
+  chargeTokenRef.current = chargeToken;
 
   const hasExpressCheckout = googlePayMounted || applePayMounted;
   const subtotalDisplay = formatPrice(cart?.subtotal) || `$${totalNum.toFixed(2)}`;
