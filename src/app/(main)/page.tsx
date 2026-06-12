@@ -3,282 +3,285 @@ import Link from "next/link";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GET_PRODUCTS } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
+import Carousel from "@/components/home/Carousel";
+import UGCStrip from "@/components/home/UGCStrip";
+import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/types";
 
-/* ─── Data fetching ─────────────────────────────────────────────────────── */
-async function getProducts(first = 4, after?: string): Promise<Product[]> {
+/* ─── Data ──────────────────────────────────────────────────────────────── */
+async function getProducts(first = 8): Promise<Product[]> {
   try {
     const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
-      GET_PRODUCTS,
-      { first, after: after ?? null }
+      GET_PRODUCTS, { first }
     );
     return data.products.nodes;
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
-/* ─── Press Logos ───────────────────────────────────────────────────────── */
-const pressQuotes = [
-  { text: '"Effortless luxury. The Noir & Blanc bag is the everyday staple that actually elevates your look."', source: "VOGUE" },
-  { text: '"Minimal, versatile, and surprisingly roomy — Noir & Blanc has mastered the go-everywhere bag."', source: "marie claire", serif: true },
-  { text: '"The bag that\'s quietly taking over street style — and your Instagram feed."', source: "COSMOPOLITAN" },
-  { text: '"Polished enough for work, cool enough for the weekend. The bag you\'ll reach for every day."', source: "BAZAAR" },
-];
-
-/* ─── Color swatches ────────────────────────────────────────────────────── */
-const swatches = [
-  { bg: "#2d5a6b", label: "Blue Lagoon", active: true },
-  { bg: "#c9a96e", label: "Camel", active: false },
-  { bg: "#1a1a1a", label: "Noir", active: false },
-  { bg: "#e8ddd0", label: "Ivory", active: false },
-  { bg: "#8b6f5e", label: "Cocoa", active: false },
-];
-
-/* ─── Features ──────────────────────────────────────────────────────────── */
-const features = [
-  { icon: "◈", label: "All-Day Comfort" },
-  { icon: "▣", label: "Spacious Interior" },
-  { icon: "◉", label: "Tech Friendly" },
-  { icon: "◈", label: "Weather Resistant" },
+/* ─── Category tiles ────────────────────────────────────────────────────── */
+const CATEGORIES = [
+  { label: "Crossbody Bags", href: "/shop?category=crossbody-bags", emoji: "👜" },
+  { label: "Bag Straps",     href: "/shop?category=bag-straps",     emoji: "🎀" },
+  { label: "Wallets",        href: "/shop?category=wallets",        emoji: "👛" },
+  { label: "New In",         href: "/shop",                         emoji: "✨" },
+  { label: "Best Sellers",   href: "/shop",                         emoji: "⭐" },
+  { label: "Sale",           href: "/shop",                         emoji: "🏷️" },
 ];
 
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 export default async function HomePage() {
-  const [newIn, collection, recommended] = await Promise.all([
-    getProducts(4),
-    getProducts(4),
-    getProducts(8),
-  ]);
-  // "Shop the Collection" — offset by showing products 5-8
-  const collectionProducts = recommended.slice(4, 8).length >= 4
-    ? recommended.slice(4, 8)
-    : collection;
-  const recommendedProducts = recommended.slice(0, 4);
+  const allProducts = await getProducts(12);
+  const newIn       = allProducts.slice(0, 8);
+  const bestSellers = allProducts.slice(0, 8);
+  const collection  = allProducts.slice(0, 4);
 
   return (
     <div className="min-h-screen">
 
       {/* ── Announcement bar ── */}
-      <div className="bg-neutral-900 text-white text-[11px] tracking-widest font-medium py-2.5 px-4 flex justify-center gap-10 overflow-hidden">
-        {["SPRING EDIT — UP TO 40% OFF", "2 FREE STRAPS & KEYRING (WORTH $100)", "FREE SHIPPING ON ORDERS OVER $75"].map((item, i) => (
-          <span key={i} className="whitespace-nowrap">{item}</span>
-        ))}
+      <div className="bg-neutral-100 border-b border-neutral-200 text-center py-2 px-4">
+        <p className="text-[11px] font-medium text-neutral-700 tracking-wide">
+          Free shipping &amp; easy returns for 365 days &nbsp;·&nbsp; Up to 40% off Spring Edit
+        </p>
       </div>
 
-      {/* ── Hero — split layout ── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[580px]">
-        {/* Left: text */}
-        <div className="flex flex-col justify-center px-10 md:px-16 py-16 md:py-20 bg-neutral-900 order-2 md:order-1">
-          <p className="text-[11px] tracking-[0.2em] uppercase font-semibold text-amber-400 mb-4">
-            Spring Edit
-          </p>
-          <h1 className="font-heading text-4xl md:text-5xl font-bold text-white leading-[1.1] mb-5 tracking-tight">
-            Your Spring,<br />Upgraded
+      {/* ── Hero ── */}
+      <section className="relative min-h-[420px] sm:min-h-[560px] lg:min-h-[680px] flex items-center justify-center text-center bg-neutral-900 overflow-hidden">
+        <Image
+          src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
+          alt="Noir & Blanc Hero"
+          fill
+          className="object-cover opacity-60"
+          priority
+        />
+        <div className="relative z-10 px-6 max-w-2xl mx-auto">
+          <p className="text-[11px] tracking-[0.25em] uppercase font-medium text-amber-400 mb-4">Spring Edit</p>
+          <h1 className="font-heading text-[36px] sm:text-[52px] lg:text-[64px] font-bold text-white leading-[1.05] mb-5 tracking-tight">
+            Summer,<br />well crafted.
           </h1>
-          <p className="text-[11px] tracking-[0.1em] uppercase text-neutral-400 mb-1">
-            Up to 40% off
+          <p className="text-[14px] text-white/60 mb-8 leading-relaxed">
+            Timeless bags designed for real life — elegant, functional, and made to move with you.
           </p>
-          <p className="text-[13px] text-neutral-500 mb-8">
-            2 Free Straps &amp; Keyring (worth $100)
-          </p>
-          <div>
-            <Link
-              href="/shop"
-              className="inline-block bg-white text-neutral-900 px-8 py-3.5 text-[11px] tracking-[0.16em] font-bold uppercase hover:bg-neutral-200 transition-colors"
-            >
-              Shop Now
-            </Link>
-          </div>
-          <div className="flex items-center gap-2 mt-7">
-            <span className="text-amber-400 text-sm">★★★★★</span>
-            <span className="text-neutral-500 text-[12px]">18,456 reviews</span>
-          </div>
-        </div>
-
-        {/* Right: image */}
-        <div className="relative overflow-hidden bg-neutral-800 min-h-[360px] md:min-h-0 order-1 md:order-2">
-          <Image
-            src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
-            alt="Noir & Blanc Spring Edit"
-            fill
-            className="object-cover"
-            priority
-          />
+          <Link
+            href="/shop"
+            className="inline-block bg-white text-neutral-900 px-10 py-3.5 text-[11px] tracking-[0.18em] font-bold uppercase hover:bg-neutral-100 transition-colors"
+          >
+            Shop the Collection
+          </Link>
         </div>
       </section>
 
-      {/* ── Press logos ── */}
-      <section className="bg-neutral-50 border-t border-b border-neutral-200 py-10 px-8">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          {pressQuotes.map((q, i) => (
-            <div key={i} className="text-center">
-              <p className="text-[12px] text-neutral-500 leading-[1.7] italic mb-3">{q.text}</p>
-              <span className={`text-[13px] font-black tracking-[0.12em] text-neutral-900 ${q.serif ? "font-serif" : "uppercase"}`}>
-                {q.source}
-              </span>
+      {/* ── Press strip ── */}
+      <section className="py-6 px-4 sm:px-8 border-b border-[#CAD3BE]/40" style={{ backgroundColor: "#EAEEE3" }}>
+        <div className="max-w-[1200px] mx-auto flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-10 gap-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] sm:text-[13px] font-semibold tracking-wider uppercase text-neutral-700">
+              As Seen On Sponsored Content
+            </span>
+            <span className="text-neutral-400 hidden sm:inline">|</span>
+          </div>
+          <span className="text-[18px] sm:text-[22px] font-black tracking-tight text-neutral-900">
+            <span className="text-red-600">●</span> CBS NEWS
+          </span>
+          <span className="text-[18px] sm:text-[22px] font-bold lowercase tracking-tight text-neutral-900 italic">abc</span>
+          <span className="text-[18px] sm:text-[22px] font-bold tracking-tight text-neutral-900 lowercase italic">
+            <span style={{ color: "#7BC142" }}>✿</span> msn
+          </span>
+          <span className="text-[20px] sm:text-[26px] font-black tracking-tight" style={{ color: "#5F01D2" }}>
+            yahoo<span className="text-red-600">!</span>
+          </span>
+        </div>
+      </section>
+
+      {/* ── Bestsellers grid ── */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Bestsellers</h2>
+            <Link
+              href="/shop"
+              className="text-[12px] sm:text-sm font-bold tracking-widest uppercase text-neutral-900 border border-neutral-900 px-5 py-2.5 hover:bg-neutral-900 hover:text-white transition-colors"
+            >
+              Shop All
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {bestSellers.slice(0, 4).map((product) => {
+              const savePct = product.onSale && product.salePrice && product.regularPrice
+                ? Math.round((1 - parseFloat(product.salePrice.replace(/[^0-9.]/g, "")) / parseFloat(product.regularPrice.replace(/[^0-9.]/g, ""))) * 100)
+                : 0;
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="block bg-white rounded-md overflow-hidden no-underline text-inherit group relative"
+                >
+                  {savePct > 0 && (
+                    <span
+                      className="absolute top-3 left-3 z-10 text-white text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
+                      style={{ backgroundColor: "#538125" }}
+                    >
+                      {savePct}% Off
+                    </span>
+                  )}
+                  <div className="aspect-square overflow-hidden bg-white p-4 sm:p-6">
+                    {product.image ? (
+                      <Image
+                        src={product.image.sourceUrl}
+                        alt={product.image.altText || product.name}
+                        width={400}
+                        height={400}
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-neutral-100" />
+                    )}
+                  </div>
+                  <div className="p-3 sm:p-4">
+                    <p className="text-[10px] sm:text-[11px] uppercase font-medium text-neutral-500 tracking-wider mb-1">
+                      {product.productCategories?.nodes?.[0]?.name ?? "Bags"}
+                    </p>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-amber-400 text-xs">★★★★★</span>
+                      <span className="text-[11px] sm:text-xs text-neutral-500">(15,243)</span>
+                    </div>
+                    <h3 className="text-[13px] sm:text-sm font-semibold text-neutral-900 leading-snug truncate mb-2">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 text-base sm:text-lg font-bold">
+                        {formatPrice(product.onSale && product.salePrice ? product.salePrice : product.price)}
+                      </span>
+                      {product.onSale && product.regularPrice && (
+                        <span className="text-neutral-400 text-xs sm:text-sm line-through">
+                          {formatPrice(product.regularPrice)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── UGC video strip ── */}
+      <UGCStrip />
+
+      {/* ── Category tiles ── */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-3 min-w-max sm:min-w-0 sm:grid sm:grid-cols-6">
+            {CATEGORIES.map((cat) => (
+              <Link key={cat.label} href={cat.href} className="flex flex-col items-center gap-2 no-underline group w-[80px] sm:w-auto">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 rounded-full flex items-center justify-center text-2xl group-hover:bg-neutral-200 transition-colors">
+                  {cat.emoji}
+                </div>
+                <span className="text-[11px] sm:text-[12px] font-medium text-neutral-700 text-center leading-tight">{cat.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── New In carousel ── */}
+      <Carousel title="New In" viewAllHref="/shop" products={newIn} badges={{ 0: "New", 2: "New" }} />
+
+      {/* ── Feature banner 1 — Spring Edit ── */}
+      <section className="flex flex-col md:flex-row min-h-[400px] md:min-h-[480px]">
+        <div className="flex-1 min-h-[240px] md:min-h-0" style={{ background: "linear-gradient(135deg,#2d5a6b,#1a3a45)" }} />
+        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
+          <p className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400 mb-3">Spring Edit</p>
+          <h2 className="font-heading text-[28px] sm:text-[36px] font-bold text-neutral-900 leading-[1.15] mb-4">
+            Your Spring,<br />Upgraded.
+          </h2>
+          <p className="text-[14px] text-neutral-500 leading-relaxed mb-7 max-w-sm">
+            Up to 40% off our most-loved styles. 2 free straps and a keyring with every bag.
+          </p>
+          <div>
+            <Link href="/shop" className="inline-block border border-neutral-900 text-neutral-900 px-7 py-3 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-900 hover:text-white transition-colors">
+              Shop the Edit
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Best Sellers carousel ── */}
+      <Carousel title="Best Sellers" viewAllHref="/shop" products={bestSellers} badges={{ 0: "Best Seller", 2: "Best Seller" }} />
+
+      {/* ── Feature banner 2 — What Makes It Your Go-To Bag ── */}
+      <section className="flex flex-col md:flex-row-reverse min-h-[400px] md:min-h-[480px]">
+        <div className="flex-1 min-h-[240px] md:min-h-0" style={{ background: "linear-gradient(135deg,#c9a96e,#8b6f5e)" }} />
+        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
+          <p className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400 mb-3">Thoughtfully designed</p>
+          <h2 className="font-heading text-[28px] sm:text-[36px] font-bold text-neutral-900 leading-[1.15] mb-4">
+            What Makes It<br /><em>Your</em> Go-To Bag
+          </h2>
+          <p className="text-[14px] text-neutral-500 leading-relaxed mb-7 max-w-sm">
+            All-day comfort, spacious interior, tech-friendly, weather resistant. Beautifully, effortlessly, every day.
+          </p>
+          <div>
+            <Link href="/shop" className="inline-block border border-neutral-900 text-neutral-900 px-7 py-3 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-900 hover:text-white transition-colors">
+              Shop all bags
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Shop the Collection grid ── */}
+      <section className="py-10 md:py-14 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[18px] sm:text-[22px] font-heading font-semibold text-neutral-900 tracking-tight">
+            Shop the Collection
+          </h2>
+          <Link href="/shop" className="text-[12px] font-medium text-neutral-600 underline underline-offset-2 hover:text-neutral-900">
+            View all
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          {collection.map((product, i) => (
+            <ProductCard key={product.id} product={product} badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Trust row ── */}
+      <section className="bg-neutral-50 border-t border-neutral-100 py-8 px-4 sm:px-8">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+          {[
+            { icon: "🚚", title: "Free Shipping",  sub: "On orders over $75" },
+            { icon: "↩️",  title: "Free Returns",   sub: "365-day returns" },
+            { icon: "💳", title: "Secure Payment", sub: "256-bit SSL" },
+            { icon: "🌿", title: "Sustainable",    sub: "Ethical production" },
+          ].map(({ icon, title, sub }) => (
+            <div key={title}>
+              <div className="text-2xl mb-2">{icon}</div>
+              <p className="text-[13px] font-semibold text-neutral-900">{title}</p>
+              <p className="text-[12px] text-neutral-500">{sub}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── New In ── */}
-      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
-            New In
-          </h2>
-          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
-            View All
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {newIn.slice(0, 4).map((product, i) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              badge={i === 0 || i === 2 ? "New" : undefined}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Shop by Color ── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[340px]">
-        {/* Left */}
-        <div className="bg-stone-100 px-10 md:px-14 py-14 md:py-16 flex flex-col justify-center">
-          <p className="text-[11px] tracking-[0.16em] uppercase font-semibold text-neutral-400 mb-3">
-            Find your shade
-          </p>
-          <h2 className="font-heading text-3xl md:text-4xl font-bold text-neutral-900 leading-[1.2] mb-3">
-            Which <em>Color</em> Matches<br />Your Mood?
-          </h2>
-          <p className="text-[13px] text-neutral-500 mb-7 leading-relaxed">
-            Find your perfect match among our five signature shades.
-          </p>
-          <Link
-            href="/shop"
-            className="self-start inline-block bg-neutral-900 text-white px-7 py-3.5 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-700 transition-colors"
-          >
-            Shop by Color
-          </Link>
-        </div>
-        {/* Right: color panel */}
-        <div className="flex flex-col items-center justify-center gap-4 bg-[#2d5a6b] min-h-[240px]">
-          <p className="font-heading text-[32px] font-bold text-white tracking-wide">Blue Lagoon</p>
-          <div className="flex gap-3 mt-2">
-            {swatches.map((s, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={s.label}
-                className={`w-5 h-5 rounded-full cursor-pointer border-2 transition-all ${s.active ? "border-white outline outline-2 outline-white outline-offset-1" : "border-transparent"}`}
-                style={{ backgroundColor: s.bg }}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Shop the Collection ── */}
-      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
-            Shop the Collection
-          </h2>
-          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
-            View All
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {collectionProducts.slice(0, 4).map((product, i) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Feature Split ── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[480px]">
-        {/* Left: lifestyle image */}
-        <div className="relative overflow-hidden bg-neutral-800 min-h-[320px] md:min-h-0">
-          <Image
-            src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
-            alt="Lifestyle"
-            fill
-            className="object-cover"
-          />
-        </div>
-        {/* Right: features */}
-        <div className="bg-neutral-50 px-10 md:px-14 py-14 md:py-16 flex flex-col justify-center">
-          <p className="text-[11px] tracking-[0.16em] uppercase font-semibold text-neutral-400 mb-3">
-            Thoughtfully designed
-          </p>
-          <h2 className="font-heading text-[34px] font-bold text-neutral-900 leading-[1.2] mb-3">
-            What Makes It <em>Your</em><br />Go-To Bag
-          </h2>
-          <p className="text-[13px] text-neutral-500 leading-relaxed mb-8">
-            Thoughtfully designed to fit your life — beautifully, effortlessly, and every day.
-          </p>
-          <div className="grid grid-cols-2 gap-5 mb-8">
-            {features.map((f, i) => (
-              <div key={i} className="flex flex-col gap-1.5">
-                <span className="text-xl text-neutral-800">{f.icon}</span>
-                <span className="text-[12px] font-semibold text-neutral-700 tracking-wide">{f.label}</span>
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/shop"
-            className="self-start border border-neutral-900 text-neutral-900 px-7 py-3 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-900 hover:text-white transition-colors"
-          >
-            Shop All
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Full-width banner ── */}
+      {/* ── CTA banner ── */}
       <section
-        className="relative flex items-center justify-center text-center px-8 py-20 min-h-[320px]"
-        style={{ background: "linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)),linear-gradient(135deg,#2a2a2a,#4a4a4a)" }}
+        className="relative flex items-center justify-center text-center px-6 py-16 sm:py-24 min-h-[280px]"
+        style={{ background: "linear-gradient(rgba(0,0,0,0.52),rgba(0,0,0,0.52)),linear-gradient(135deg,#1a1a1a,#3a3a3a)" }}
       >
         <div>
-          <h2 className="font-heading text-4xl font-bold text-white tracking-tight mb-3">
+          <h2 className="font-heading text-[28px] sm:text-[40px] font-bold text-white tracking-tight mb-3 leading-tight">
             Worn Daily. Styled Your Way.
           </h2>
-          <p className="text-white/70 text-sm mb-8 tracking-wide">
+          <p className="text-white/60 text-[14px] mb-7 max-w-md mx-auto leading-relaxed">
             Elegant enough for dinner, effortless enough for errands.
           </p>
           <Link
             href="/shop"
-            className="inline-block border border-white/80 text-white px-9 py-3.5 text-[11px] tracking-[0.16em] font-bold uppercase hover:bg-white hover:text-neutral-900 transition-colors"
+            className="inline-block border border-white/80 text-white px-10 py-3.5 text-[11px] tracking-[0.18em] font-bold uppercase hover:bg-white hover:text-neutral-900 transition-colors"
           >
             Find Your Everyday Bag
           </Link>
-        </div>
-      </section>
-
-      {/* ── You might like these ── */}
-      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
-            You Might Like These
-          </h2>
-          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
-            View All
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {recommendedProducts.slice(0, 4).map((product, i) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              badge={i === 0 ? "Best Seller" : i === 2 ? "New" : undefined}
-            />
-          ))}
         </div>
       </section>
 
