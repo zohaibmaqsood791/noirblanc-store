@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 // ── Square Web Payments SDK ──────────────────────────────────────────────────
 // Square hosts its own JS/iframes on squarecdn/squareup, but its FONTS are
 // served from AWS CloudFront (d1g145x70srn7h.cloudfront.net).
+// CSP v3 — updated 2026-06-12
 const SQUARE = [
   "https://web.squarecdn.com",
   "https://sandbox.web.squarecdn.com",
