@@ -365,10 +365,18 @@ export default function CartDrawer() {
                           </p>
                         </div>
 
-                        {/* Checkout button */}
-                        <Link
-                          href="/checkout"
-                          onClick={closeCart}
+                        {/* Checkout button — redirects to WooCommerce checkout,
+                            passing the headless session token so the cart transfers */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            closeCart();
+                            const token = localStorage.getItem("woo-session");
+                            const base = "https://noirblancnyc.com/checkout/";
+                            window.location.href = token
+                              ? `${base}?wc_headless_session=${encodeURIComponent(token)}`
+                              : base;
+                          }}
                           className="flex items-center justify-center gap-3 w-full min-h-[48px] rounded-[10px] text-white font-bold text-sm sm:text-base uppercase tracking-wide py-3 px-6 transition-opacity hover:opacity-90"
                           style={{ background: "linear-gradient(90deg,#0a0a0a 0%,#2a2a2a 50%,#0a0a0a 100%)" }}
                         >
@@ -381,7 +389,7 @@ export default function CartDrawer() {
                             <path d="M3.75 9H14.25" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             <path d="M9 3.75L14.25 9L9 14.25" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                        </Link>
+                        </button>
 
                         {/* Payment method badges */}
                         <div className="flex flex-wrap gap-1.5 justify-center items-center mt-1">
