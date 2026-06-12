@@ -1,0 +1,7 @@
+{
+  "default_applications": ["https://pay.google.com/gp/p/payment_method_manifest"],
+  "supported_origins": [
+    "https://noirblanc.store",
+    "https://www.noirblanc.store"
+  ]
+}
