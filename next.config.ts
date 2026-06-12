@@ -77,7 +77,7 @@ const nextConfig: NextConfig = {
           // their opener reference (unsafe-none = browser default, required for
           // Google Pay's cross-origin popup ↔ parent communication)
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
         ],
       },
       // Allow Google Pay / Square to fetch the payment manifest with correct CORS

@@ -287,6 +287,20 @@ export default function CheckoutPage() {
           if (!active) { gp.destroy(); return; }
           await gp.attach!("#sq-google-pay");
           if (!active) { gp.destroy(); return; }
+
+          // Square injects the visual button but does NOT auto-call tokenize on
+          // click — we must wire the click → tokenize() ourselves per Square docs.
+          const gpContainer = document.getElementById("sq-google-pay");
+          if (gpContainer) {
+            gpContainer.addEventListener("click", async () => {
+              try {
+                await gp.tokenize!();
+              } catch (err) {
+                console.error("[GPay] tokenize error:", err);
+              }
+            });
+          }
+
           gp.addEventListener("ontokenization", async (e) => {
             const { status, token, errors } = e.detail;
             if (status !== "OK" || !token) {
