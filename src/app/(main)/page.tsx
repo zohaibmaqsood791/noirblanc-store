@@ -1,22 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { graphqlClient } from "@/lib/graphql/client";
-import { GET_PRODUCTS, GET_CATEGORIES } from "@/lib/graphql/queries";
+import { GET_PRODUCTS } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
-import type { Product, Category } from "@/types";
+import type { Product } from "@/types";
 
-const features = [
-  { title: "Comfort First", description: "Adjustable straps and lightweight design for all-day wear." },
-  { title: "Generous Capacity", description: "Fits your essentials — cards, phone, keys — without the bulk." },
-  { title: "Tech-Friendly", description: "Dedicated pockets for your devices, always within reach." },
-  { title: "Weather Resistant", description: "Coated materials that stand up to whatever the day brings." },
-];
-
-async function getFeaturedProducts() {
+/* ─── Data fetching ─────────────────────────────────────────────────────── */
+async function getProducts(first = 4, after?: string): Promise<Product[]> {
   try {
     const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
       GET_PRODUCTS,
-      { first: 8 }
+      { first, after: after ?? null }
     );
     return data.products.nodes;
   } catch {
@@ -24,160 +18,270 @@ async function getFeaturedProducts() {
   }
 }
 
-async function getCategories() {
-  try {
-    const data = await graphqlClient.request<{ productCategories: { nodes: Category[] } }>(
-      GET_CATEGORIES
-    );
-    return data.productCategories.nodes.filter((c) => c.slug !== "uncategorized").slice(0, 3);
-  } catch {
-    return [];
-  }
-}
+/* ─── Press Logos ───────────────────────────────────────────────────────── */
+const pressQuotes = [
+  { text: '"Effortless luxury. The Noir & Blanc bag is the everyday staple that actually elevates your look."', source: "VOGUE" },
+  { text: '"Minimal, versatile, and surprisingly roomy — Noir & Blanc has mastered the go-everywhere bag."', source: "marie claire", serif: true },
+  { text: '"The bag that\'s quietly taking over street style — and your Instagram feed."', source: "COSMOPOLITAN" },
+  { text: '"Polished enough for work, cool enough for the weekend. The bag you\'ll reach for every day."', source: "BAZAAR" },
+];
 
+/* ─── Color swatches ────────────────────────────────────────────────────── */
+const swatches = [
+  { bg: "#2d5a6b", label: "Blue Lagoon", active: true },
+  { bg: "#c9a96e", label: "Camel", active: false },
+  { bg: "#1a1a1a", label: "Noir", active: false },
+  { bg: "#e8ddd0", label: "Ivory", active: false },
+  { bg: "#8b6f5e", label: "Cocoa", active: false },
+];
+
+/* ─── Features ──────────────────────────────────────────────────────────── */
+const features = [
+  { icon: "◈", label: "All-Day Comfort" },
+  { icon: "▣", label: "Spacious Interior" },
+  { icon: "◉", label: "Tech Friendly" },
+  { icon: "◈", label: "Weather Resistant" },
+];
+
+/* ─── Page ──────────────────────────────────────────────────────────────── */
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([
-    getFeaturedProducts(),
-    getCategories(),
+  const [newIn, collection, recommended] = await Promise.all([
+    getProducts(4),
+    getProducts(4),
+    getProducts(8),
   ]);
+  // "Shop the Collection" — offset by showing products 5-8
+  const collectionProducts = recommended.slice(4, 8).length >= 4
+    ? recommended.slice(4, 8)
+    : collection;
+  const recommendedProducts = recommended.slice(0, 4);
 
   return (
-    <>
-      {/* Hero */}
-      <section className="relative h-[90vh] min-h-[600px] bg-neutral-100 overflow-hidden">
-        <Image
-          src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
-          alt="Noir & Blanc Hero"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-          <p className="text-sm tracking-[0.3em] uppercase mb-4 font-body opacity-90">New Collection</p>
-          <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6 max-w-3xl leading-none">
-            Your Style,<br />Upgraded
-          </h1>
-          <p className="text-lg opacity-80 mb-8 max-w-md font-body font-light">
-            Premium accessories crafted for the modern woman.
-          </p>
-          <Link
-            href="/shop"
-            className="bg-white text-black text-sm font-semibold px-8 py-3.5 tracking-widest uppercase hover:bg-neutral-100 transition-colors"
-          >
-            Shop Now
-          </Link>
-        </div>
-      </section>
+    <div className="min-h-screen">
 
-      {/* Announcement bar */}
-      <div className="bg-black text-white text-center py-2.5">
-        <p className="text-xs tracking-widest uppercase font-body">
-          Free shipping on orders over $75 · Use code NOIR10 for 10% off
-        </p>
+      {/* ── Announcement bar ── */}
+      <div className="bg-neutral-900 text-white text-[11px] tracking-widest font-medium py-2.5 px-4 flex justify-center gap-10 overflow-hidden">
+        {["SPRING EDIT — UP TO 40% OFF", "2 FREE STRAPS & KEYRING (WORTH $100)", "FREE SHIPPING ON ORDERS OVER $75"].map((item, i) => (
+          <span key={i} className="whitespace-nowrap">{item}</span>
+        ))}
       </div>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <h2 className="font-heading text-3xl font-bold text-center mb-12 tracking-tight">
-            Shop by Category
-          </h2>
-          <div className={`grid grid-cols-1 gap-6 ${categories.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/shop?category=${cat.slug}`}
-                className="group relative overflow-hidden bg-neutral-100 rounded" style={{ paddingBottom: "100%", height: 0 }}
-              >
-                {cat.image ? (
-                  <Image
-                    src={cat.image.sourceUrl}
-                    alt={cat.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, 33vw"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-neutral-200" />
-                )}
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
-                <div className="absolute inset-0 flex items-end p-6">
-                  <div>
-                    <h3 className="font-heading text-white text-xl font-semibold tracking-wide">{cat.name}</h3>
-                    <p className="text-white/70 text-xs mt-1">{cat.count} products</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Featured Products */}
-      <section className="bg-[#f9f7f4] py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="font-heading text-3xl font-bold tracking-tight">Best Sellers</h2>
-            <Link href="/shop" className="text-sm underline underline-offset-4 hover:opacity-60 transition-opacity">
-              View All
+      {/* ── Hero — split layout ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[580px]">
+        {/* Left: text */}
+        <div className="flex flex-col justify-center px-10 md:px-16 py-16 md:py-20 bg-neutral-900 order-2 md:order-1">
+          <p className="text-[11px] tracking-[0.2em] uppercase font-semibold text-amber-400 mb-4">
+            Spring Edit
+          </p>
+          <h1 className="font-heading text-4xl md:text-5xl font-bold text-white leading-[1.1] mb-5 tracking-tight">
+            Your Spring,<br />Upgraded
+          </h1>
+          <p className="text-[11px] tracking-[0.1em] uppercase text-neutral-400 mb-1">
+            Up to 40% off
+          </p>
+          <p className="text-[13px] text-neutral-500 mb-8">
+            2 Free Straps &amp; Keyring (worth $100)
+          </p>
+          <div>
+            <Link
+              href="/shop"
+              className="inline-block bg-white text-neutral-900 px-8 py-3.5 text-[11px] tracking-[0.16em] font-bold uppercase hover:bg-neutral-200 transition-colors"
+            >
+              Shop Now
             </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div className="flex items-center gap-2 mt-7">
+            <span className="text-amber-400 text-sm">★★★★★</span>
+            <span className="text-neutral-500 text-[12px]">18,456 reviews</span>
           </div>
+        </div>
+
+        {/* Right: image */}
+        <div className="relative overflow-hidden bg-neutral-800 min-h-[360px] md:min-h-0 order-1 md:order-2">
+          <Image
+            src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
+            alt="Noir & Blanc Spring Edit"
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
       </section>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 className="font-heading text-3xl font-bold text-center mb-14 tracking-tight">
-          What Makes It Your Go-To Bag
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((f) => (
-            <div key={f.title} className="text-center">
-              <div className="w-12 h-12 rounded-full bg-black mx-auto mb-4 flex items-center justify-center">
-                <Image
-                  src="https://noirblancnyc.com/cdn/shop/files/Union_1.svg"
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="brightness-0 invert"
-                />
-              </div>
-              <h3 className="font-heading font-semibold text-base mb-2">{f.title}</h3>
-              <p className="text-sm text-neutral-500 leading-relaxed">{f.description}</p>
+      {/* ── Press logos ── */}
+      <section className="bg-neutral-50 border-t border-b border-neutral-200 py-10 px-8">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+          {pressQuotes.map((q, i) => (
+            <div key={i} className="text-center">
+              <p className="text-[12px] text-neutral-500 leading-[1.7] italic mb-3">{q.text}</p>
+              <span className={`text-[13px] font-black tracking-[0.12em] text-neutral-900 ${q.serif ? "font-serif" : "uppercase"}`}>
+                {q.source}
+              </span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-black text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="font-heading text-3xl font-bold mb-12 tracking-tight">What Our Customers Say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { quote: "The quality is unreal. I use it every single day.", name: "Sarah M." },
-              { quote: "Finally a bag that fits everything without being bulky.", name: "Jessica T." },
-              { quote: "Ordered in Ivory and it goes with literally everything.", name: "Priya K." },
-            ].map((t) => (
-              <div key={t.name} className="text-left">
-                <div className="flex gap-0.5 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400 text-sm">★</span>
-                  ))}
-                </div>
-                <p className="text-neutral-300 text-sm leading-relaxed mb-3">&ldquo;{t.quote}&rdquo;</p>
-                <p className="text-sm font-semibold">{t.name}</p>
-              </div>
+      {/* ── New In ── */}
+      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
+            New In
+          </h2>
+          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
+            View All
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {newIn.slice(0, 4).map((product, i) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              badge={i === 0 || i === 2 ? "New" : undefined}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Shop by Color ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[340px]">
+        {/* Left */}
+        <div className="bg-stone-100 px-10 md:px-14 py-14 md:py-16 flex flex-col justify-center">
+          <p className="text-[11px] tracking-[0.16em] uppercase font-semibold text-neutral-400 mb-3">
+            Find your shade
+          </p>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold text-neutral-900 leading-[1.2] mb-3">
+            Which <em>Color</em> Matches<br />Your Mood?
+          </h2>
+          <p className="text-[13px] text-neutral-500 mb-7 leading-relaxed">
+            Find your perfect match among our five signature shades.
+          </p>
+          <Link
+            href="/shop"
+            className="self-start inline-block bg-neutral-900 text-white px-7 py-3.5 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-700 transition-colors"
+          >
+            Shop by Color
+          </Link>
+        </div>
+        {/* Right: color panel */}
+        <div className="flex flex-col items-center justify-center gap-4 bg-[#2d5a6b] min-h-[240px]">
+          <p className="font-heading text-[32px] font-bold text-white tracking-wide">Blue Lagoon</p>
+          <div className="flex gap-3 mt-2">
+            {swatches.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={s.label}
+                className={`w-5 h-5 rounded-full cursor-pointer border-2 transition-all ${s.active ? "border-white outline outline-2 outline-white outline-offset-1" : "border-transparent"}`}
+                style={{ backgroundColor: s.bg }}
+              />
             ))}
           </div>
         </div>
       </section>
-    </>
+
+      {/* ── Shop the Collection ── */}
+      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
+            Shop the Collection
+          </h2>
+          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
+            View All
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {collectionProducts.slice(0, 4).map((product, i) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Feature Split ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 min-h-[480px]">
+        {/* Left: lifestyle image */}
+        <div className="relative overflow-hidden bg-neutral-800 min-h-[320px] md:min-h-0">
+          <Image
+            src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
+            alt="Lifestyle"
+            fill
+            className="object-cover"
+          />
+        </div>
+        {/* Right: features */}
+        <div className="bg-neutral-50 px-10 md:px-14 py-14 md:py-16 flex flex-col justify-center">
+          <p className="text-[11px] tracking-[0.16em] uppercase font-semibold text-neutral-400 mb-3">
+            Thoughtfully designed
+          </p>
+          <h2 className="font-heading text-[34px] font-bold text-neutral-900 leading-[1.2] mb-3">
+            What Makes It <em>Your</em><br />Go-To Bag
+          </h2>
+          <p className="text-[13px] text-neutral-500 leading-relaxed mb-8">
+            Thoughtfully designed to fit your life — beautifully, effortlessly, and every day.
+          </p>
+          <div className="grid grid-cols-2 gap-5 mb-8">
+            {features.map((f, i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <span className="text-xl text-neutral-800">{f.icon}</span>
+                <span className="text-[12px] font-semibold text-neutral-700 tracking-wide">{f.label}</span>
+              </div>
+            ))}
+          </div>
+          <Link
+            href="/shop"
+            className="self-start border border-neutral-900 text-neutral-900 px-7 py-3 text-[11px] tracking-[0.14em] font-bold uppercase hover:bg-neutral-900 hover:text-white transition-colors"
+          >
+            Shop All
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Full-width banner ── */}
+      <section
+        className="relative flex items-center justify-center text-center px-8 py-20 min-h-[320px]"
+        style={{ background: "linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)),linear-gradient(135deg,#2a2a2a,#4a4a4a)" }}
+      >
+        <div>
+          <h2 className="font-heading text-4xl font-bold text-white tracking-tight mb-3">
+            Worn Daily. Styled Your Way.
+          </h2>
+          <p className="text-white/70 text-sm mb-8 tracking-wide">
+            Elegant enough for dinner, effortless enough for errands.
+          </p>
+          <Link
+            href="/shop"
+            className="inline-block border border-white/80 text-white px-9 py-3.5 text-[11px] tracking-[0.16em] font-bold uppercase hover:bg-white hover:text-neutral-900 transition-colors"
+          >
+            Find Your Everyday Bag
+          </Link>
+        </div>
+      </section>
+
+      {/* ── You might like these ── */}
+      <section className="py-16 px-4 sm:px-8 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="font-heading text-[28px] font-semibold text-neutral-900 tracking-tight">
+            You Might Like These
+          </h2>
+          <Link href="/shop" className="text-[11px] tracking-[0.1em] uppercase font-semibold text-neutral-500 hover:text-neutral-900 transition-colors underline underline-offset-4">
+            View All
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {recommendedProducts.slice(0, 4).map((product, i) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              badge={i === 0 ? "Best Seller" : i === 2 ? "New" : undefined}
+            />
+          ))}
+        </div>
+      </section>
+
+    </div>
   );
 }
