@@ -73,10 +73,11 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "Content-Security-Policy", value: csp },
-          // Allow Google Pay's payment handler to embed our pages
+          // Prevent clickjacking — but allow Google Pay/Apple Pay popups to keep
+          // their opener reference (unsafe-none = browser default, required for
+          // Google Pay's cross-origin popup ↔ parent communication)
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          // Required for Google Pay payment manifest verification
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
         ],
       },
       // Allow Google Pay / Square to fetch the payment manifest with correct CORS
