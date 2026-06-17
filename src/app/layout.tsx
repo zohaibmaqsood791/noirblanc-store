@@ -53,8 +53,8 @@ export const metadata: Metadata = {
     images: ["https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_4815d651-07c5-4bff-8aac-5309b5a4e354.png?v=1777465275"],
   },
   icons: {
-    icon: "https://noirblancnyc.com/cdn/shop/files/favicon.svg?crop=center&height=32&v=1753545428&width=32",
-    shortcut: "https://noirblancnyc.com/cdn/shop/files/favicon.svg?crop=center&height=32&v=1753545428&width=32",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
   },
 };
 
