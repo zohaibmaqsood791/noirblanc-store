@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Raleway, Poppins } from "next/font/google";
 import "./globals.css";
+import MetaPixel from "@/components/MetaPixel";
 
 const raleway = Raleway({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <body className="font-body antialiased bg-white text-neutral-900">
+        <MetaPixel />
         {children}
       </body>
     </html>

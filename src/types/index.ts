@@ -10,8 +10,8 @@ export interface Product {
   salePrice: string;
   onSale: boolean;
   stockStatus: "IN_STOCK" | "OUT_OF_STOCK" | "ON_BACKORDER";
-  image: { sourceUrl: string; altText: string } | null;
-  galleryImages: { nodes: { sourceUrl: string; altText: string }[] };
+  image: { databaseId: number; sourceUrl: string; altText: string } | null;
+  galleryImages: { nodes: { databaseId: number; sourceUrl: string; altText: string }[] };
   productCategories: { nodes: { name: string; slug: string }[] };
   variations?: {
     nodes: ProductVariation[];
@@ -29,19 +29,33 @@ export interface ProductVariation {
   attributes: {
     nodes: { name: string; value: string }[];
   };
-  image: { sourceUrl: string; altText: string } | null;
+  image: { databaseId: number; sourceUrl: string; altText: string } | null;
 }
 
 export interface CartItem {
   key: string;
   product: {
-    node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image">;
+    node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image"> & {
+      regularPrice?: string;
+      salePrice?: string;
+    };
   };
   variation?: {
-    node: Pick<ProductVariation, "id" | "databaseId" | "name" | "price" | "attributes">;
+    node: Pick<ProductVariation, "id" | "databaseId" | "name" | "price" | "attributes"> & {
+      image?: { sourceUrl: string; altText: string } | null;
+      regularPrice?: string;
+      salePrice?: string;
+    };
   };
   quantity: number;
   total: string;
+}
+
+export interface ShippingRate {
+  id: string;
+  cost: string;
+  label: string;
+  methodId: string;
 }
 
 export interface Cart {
@@ -52,7 +66,11 @@ export interface Cart {
   total: string;
   subtotal: string;
   shippingTotal: string;
+  feeTotal: string;
   discountTotal: string;
+  appliedCoupons?: { code: string; discountAmount: string }[];
+  availableShippingMethods?: { packageDetails: string; rates: ShippingRate[] }[];
+  chosenShippingMethods?: string[];
 }
 
 export interface Category {

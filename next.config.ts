@@ -33,15 +33,32 @@ const APAY = [
   "https://*.apple.com",
 ];
 
+// ── Meta Pixel ───────────────────────────────────────────────────────────────
+const META = [
+  "https://connect.facebook.net",
+  "https://*.facebook.net",
+  "https://*.facebook.com",
+  "https://*.fbcdn.net",
+];
+
+// ── Review images (Judge.me / AliExpress CDN) ────────────────────────────────
+const REVIEW_IMG = [
+  "https://*.amazonaws.com",
+  "https://*.alicdn.com",
+  "https://*.judge.me",
+];
+
 // ── Our own assets ───────────────────────────────────────────────────────────
 // noirblancnyc.com (root) is NOT covered by *.noirblancnyc.com — list both.
 const OUR_ASSETS = [
   "https://noirblancnyc.com",
   "https://*.noirblancnyc.com",
   "https://noirandblancnyc.kinsta.cloud",
+  "https://noirblanc.store",
+  "https://*.noirblanc.store",
 ];
 
-const ALL = [...SQUARE, ...GPAY, ...APAY];
+const ALL = [...SQUARE, ...GPAY, ...APAY, ...META];
 
 const csp = [
   `default-src 'self'`,
@@ -52,18 +69,25 @@ const csp = [
   `frame-src   'self' ${ALL.join(" ")}`,
   // connect-src needs google.com root AND sentry.io for Square's error SDK
   `connect-src 'self' ${ALL.join(" ")} ${OUR_ASSETS.join(" ")}`,
-  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")}`,
+  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")} ${REVIEW_IMG.join(" ")}`,
+  `media-src   'self' ${OUR_ASSETS.join(" ")}`,
   `manifest-src 'self' ${GPAY.join(" ")}`,
 ].join("; ");
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2592000, // 30 days
+    deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [64, 80, 128, 256, 384],
     remotePatterns: [
       { protocol: "https", hostname: "noirblancnyc.com" },
       { protocol: "https", hostname: "**.noirblancnyc.com" },
       { protocol: "https", hostname: "noirblanc.store" },
       { protocol: "https", hostname: "**.noirblanc.store" },
       { protocol: "https", hostname: "noirandblancnyc.kinsta.cloud" },
+      { protocol: "https", hostname: "**.amazonaws.com" },
+      { protocol: "https", hostname: "**.judge.me" },
     ],
   },
 

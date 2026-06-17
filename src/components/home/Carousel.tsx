@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import Link from "next/link";
 import ProductCard from "@/components/product/ProductCard";
 import type { Product } from "@/types";
@@ -13,71 +12,43 @@ interface Props {
 }
 
 export default function Carousel({ title, viewAllHref, products, badges = {} }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
-  const scroll = (dir: number) => {
-    if (ref.current) ref.current.scrollBy({ left: dir * 280, behavior: "smooth" });
-  };
-
   if (!products.length) return null;
 
   return (
-    <section className="py-10 md:py-14">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 mb-5">
-        <h2 className="text-[18px] sm:text-[22px] font-heading font-semibold text-neutral-900 tracking-tight">
-          {title}
-        </h2>
-        <div className="flex items-center gap-3">
+    <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+      <div className="max-w-[1400px] mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{title}</h2>
           <Link
             href={viewAllHref}
-            className="text-[12px] font-medium text-neutral-600 underline underline-offset-2 hover:text-neutral-900 hidden sm:block"
+            className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
           >
-            View all
+            Shop All
           </Link>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => scroll(-1)}
-              className="w-8 h-8 border border-neutral-300 flex items-center justify-center hover:border-neutral-900 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => scroll(1)}
-              className="w-8 h-8 border border-neutral-300 flex items-center justify-center hover:border-neutral-900 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Scroll track */}
-      <div
-        ref={ref}
-        className="flex gap-3 overflow-x-auto px-4 sm:px-6 lg:px-8 pb-2 snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {products.map((product, i) => (
-          <div key={product.id} className="flex-none w-[160px] sm:w-[200px] md:w-[220px] snap-start">
-            <ProductCard product={product} badge={badges[i]} />
-          </div>
-        ))}
-      </div>
-
-      {/* Mobile view-all */}
-      <div className="px-4 sm:px-6 lg:px-8 mt-4 sm:hidden">
-        <Link
-          href={viewAllHref}
-          className="block w-full text-center border border-neutral-900 text-neutral-900 py-2.5 text-[12px] font-semibold tracking-wide hover:bg-neutral-900 hover:text-white transition-colors"
+        {/* Mobile: horizontal scroll | Desktop: 4-col grid */}
+        <div
+          className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4"
+          style={{ scrollbarWidth: "none" }}
         >
-          View all
-        </Link>
+          {products.slice(0, 4).map((product, i) => (
+            <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
+              <ProductCard product={product} badge={badges[i]} />
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile-only Shop All */}
+        <div className="w-full text-center md:hidden mt-6">
+          <Link
+            href={viewAllHref}
+            className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
+          >
+            Shop All
+          </Link>
+        </div>
       </div>
     </section>
   );

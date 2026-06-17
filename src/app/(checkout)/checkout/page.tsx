@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
+import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
 import type { Address } from "@/types";
 
 /* ─── Square SDK types ─────────────────────────────────────────────────── */
@@ -43,14 +44,11 @@ declare global {
   }
 }
 
-/* ─── Constants ─────────────────────────────────────────────────────────── */
-const COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia"];
-const US_STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
-  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
-  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
-  "VA","WA","WV","WI","WY",
-];
+/* ─── Types ─────────────────────────────────────────────────────────────── */
+interface WCCountry { code: string; name: string; states: { code: string; name: string }[] }
+
+/* ─── Fallback constants (used before WooCommerce data loads) ────────────── */
+const COUNTRY_CODES: Record<string, string> = {}; // populated dynamically
 
 /* ─── Input component ───────────────────────────────────────────────────── */
 function Field({
@@ -67,9 +65,9 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? label}
         autoComplete={autoComplete}
-        className="peer w-full border border-[#D4D4D4] rounded-[5px] px-3 pt-5 pb-2 text-sm text-[#1a1a1a] placeholder-transparent focus:outline-none focus:border-[#1a1a1a] transition-colors bg-white"
+        className="peer w-full border border-[#D4D4D4] rounded-[5px] px-3 pt-5 pb-2 text-[16px] lg:text-sm text-[#1a1a1a] placeholder-transparent focus:outline-none focus:border-[#1a1a1a] transition-colors bg-white"
       />
-      <label className="absolute left-3 top-1.5 text-[10px] text-[#757575] font-medium transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-[#999] peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#757575] pointer-events-none">
+      <label className="absolute left-3 top-1.5 text-[10px] text-[#757575] font-medium transition-all peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[14px] peer-placeholder-shown:text-[#aaa] peer-placeholder-shown:font-light peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#757575] peer-focus:font-medium pointer-events-none">
         {label}
       </label>
     </div>
@@ -87,7 +85,7 @@ function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="peer w-full border border-[#D4D4D4] rounded-[5px] px-3 pt-5 pb-2 text-sm text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] transition-colors bg-white appearance-none"
+        className="peer w-full border border-[#D4D4D4] rounded-[5px] px-3 pt-5 pb-2 text-[16px] lg:text-sm text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a] transition-colors bg-white appearance-none"
       >
         {options.map((o) => <option key={o}>{o}</option>)}
       </select>
@@ -103,94 +101,161 @@ function SelectField({
 
 /* ─── Order Summary ─────────────────────────────────────────────────────── */
 function OrderSummary({
-  discountCode, setDiscountCode, shipping,
+  discountCode, setDiscountCode, addressReady, hideTotal = false,
 }: {
-  discountCode: string; setDiscountCode: (v: string) => void; shipping: number;
+  discountCode: string; setDiscountCode: (v: string) => void; addressReady: boolean; hideTotal?: boolean;
 }) {
-  const { cart } = useCartStore();
+  const { cart, setCart } = useCartStore();
   const items = cart?.contents?.nodes ?? [];
-  const subtotalNum = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
-  const totalNum = subtotalNum + shipping;
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const appliedCoupons = cart?.appliedCoupons ?? [];
+  const shippingTotal = cart?.shippingTotal ?? "0";
+  // "has shipping selected" = a method is chosen (even if free)
+  const hasShippingMethod = (cart?.chosenShippingMethods?.length ?? 0) > 0;
+  const shippingNum = parseFloat(shippingTotal.replace(/[^0-9.]/g, "") || "0");
+  // Derive tax: total - subtotal - shipping + discount (WooCommerce includes tax in total)
+  const subtotalNum2 = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+  const shippingNum2 = parseFloat(shippingTotal.replace(/[^0-9.]/g, ""));
+  const discountNum2 = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+  const totalNum2 = parseFloat((cart?.total ?? "0").replace(/[^0-9.]/g, ""));
+  const taxNum = Math.max(0, totalNum2 - subtotalNum2 - shippingNum2 + discountNum2);
+
+  async function handleApplyCoupon() {
+    if (!discountCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const updated = await applyCoupon(discountCode.trim());
+      if (updated) {
+        setCart(updated);
+        setDiscountCode("");
+      } else {
+        setCouponError("Invalid or expired coupon code.");
+      }
+    } catch (e: unknown) {
+      // Show the actual WooCommerce error message (e.g. "Coupon does not exist!")
+      const msg = e instanceof Error ? e.message : "Could not apply coupon. Please try again.";
+      setCouponError(msg);
+    }
+    setCouponLoading(false);
+  }
+
+  async function handleRemoveCoupon(code: string) {
+    const updated = await removeCoupon(code);
+    if (updated) setCart(updated);
+  }
+
   const savings = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Items */}
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {items.map((item) => (
-          <li key={item.key} className="flex gap-3 items-start">
-            <div className="relative flex-shrink-0 w-14 h-14 rounded-[6px] border border-[#E0E0E0] overflow-hidden bg-[#F5F5F5]">
-              {item.product.node.image && (
-                <Image src={item.product.node.image.sourceUrl} alt={item.product.node.name} fill className="object-cover" sizes="56px" />
-              )}
-              <span className="absolute -top-1.5 -right-1.5 bg-[#717171] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-medium">
+          <li key={item.key} className="flex gap-3 items-center">
+            <div className="relative flex-shrink-0 w-[64px] h-[64px]">
+              <div className="w-full h-full rounded-[8px] border border-[#E0E0E0] overflow-hidden bg-white">
+                {item.product.node.image && (
+                  <Image src={item.product.node.image.sourceUrl} alt={item.product.node.name} fill className="object-contain p-1" sizes="64px" />
+                )}
+              </div>
+              <span className="absolute -top-2 -right-2 bg-[#1a1a1a] text-white text-[10px] w-[20px] h-[20px] rounded-full flex items-center justify-center font-semibold leading-none z-10">
                 {item.quantity}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1a1a1a] truncate">{item.product.node.name}</p>
+              <p className="text-sm font-medium text-[#1a1a1a] leading-snug">{item.product.node.name}</p>
               {item.variation?.node.attributes.nodes.map((a) => (
-                <p key={a.name} className="text-xs text-[#717171]">{a.value}</p>
+                <p key={a.name} className="text-xs text-[#717171] mt-0.5">{a.value}</p>
               ))}
             </div>
-            <p className="text-sm font-medium text-[#1a1a1a] ml-2 whitespace-nowrap">{formatPrice(item.total)}</p>
+            <p className="text-sm font-semibold text-[#1a1a1a] ml-2 whitespace-nowrap">{formatPrice(item.total)}</p>
           </li>
         ))}
       </ul>
 
-      {/* Discount */}
-      <div className="flex gap-2 pt-1">
-        <input
-          type="text"
-          value={discountCode}
-          onChange={(e) => setDiscountCode(e.target.value)}
-          placeholder="Discount code or gift card"
-          className="flex-1 border border-[#D4D4D4] rounded-[5px] px-3 py-2.5 text-sm focus:outline-none focus:border-[#1a1a1a] transition-colors"
-        />
-        <button className="px-4 py-2.5 border border-[#D4D4D4] rounded-[5px] text-sm font-medium text-[#717171] hover:border-[#1a1a1a] hover:text-[#1a1a1a] transition-colors whitespace-nowrap">
-          Apply
-        </button>
+      {/* Applied coupons */}
+      {appliedCoupons.length > 0 && (
+        <div className="space-y-1">
+          {appliedCoupons.map((c) => (
+            <div key={c.code} className="flex items-center justify-between bg-[#F0FAF7] rounded px-3 py-2">
+              <span className="text-xs font-medium text-[#007A5C] uppercase tracking-wide">{c.code}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#007A5C]">-{formatPrice(c.discountAmount)}</span>
+                <button onClick={() => handleRemoveCoupon(c.code)} className="text-[#717171] hover:text-red-500 text-xs">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Discount code input */}
+      <div className="space-y-1">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={discountCode}
+            onChange={(e) => { setDiscountCode(e.target.value); setCouponError(null); }}
+            onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+            placeholder="Discount code"
+            className="flex-1 border border-[#D4D4D4] rounded-[5px] px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#1a1a1a] transition-colors"
+          />
+          <button
+            onClick={handleApplyCoupon}
+            disabled={couponLoading || !discountCode.trim()}
+            className="px-4 py-2.5 border border-[#D4D4D4] rounded-[5px] text-sm font-medium text-[#555] bg-white hover:border-[#1a1a1a] hover:text-[#1a1a1a] transition-colors whitespace-nowrap disabled:opacity-50"
+          >
+            {couponLoading ? "…" : "Apply"}
+          </button>
+        </div>
+        {couponError && <p className="text-xs text-red-500">{couponError}</p>}
       </div>
 
       {/* Totals */}
-      <div className="space-y-2 pt-2 border-t border-[#E0E0E0]">
-        <div className="flex justify-between text-sm text-[#1a1a1a]">
+      <div className="space-y-3 pt-3 border-t border-[#E0E0E0]">
+        <div className="flex justify-between text-sm">
           <span className="text-[#717171]">Subtotal</span>
-          <span>{formatPrice(cart?.subtotal) || "—"}</span>
+          <span className="font-medium text-[#1a1a1a]">{formatPrice(cart?.subtotal) || "—"}</span>
         </div>
+        {savings > 0.01 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-[#007A5C]">Discount</span>
+            <span className="font-medium text-[#007A5C]">-{formatPrice(cart?.discountTotal)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-[#717171] flex items-center gap-1">
             Shipping
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#B5B5B5" strokeWidth="1.2"/><path d="M8 7v5" stroke="#B5B5B5" strokeWidth="1.3" strokeLinecap="round"/><circle cx="8" cy="5" r="0.7" fill="#B5B5B5"/></svg>
           </span>
-          {shipping === 0 ? (
-            <span className="text-[#1a1a1a]">
-              <span className="line-through text-[#B5B5B5] mr-1">$9.95</span>
-              <span className="text-[#007A5C] font-medium">FREE</span>
-            </span>
-          ) : (
-            <span>${shipping.toFixed(2)}</span>
-          )}
+          {addressReady && hasShippingMethod
+            ? <span className={`font-medium ${shippingNum === 0 ? "text-[#007A5C]" : "text-[#1a1a1a]"}`}>
+                {shippingNum === 0 ? "FREE" : formatPrice(shippingTotal)}
+              </span>
+            : <span className="text-[#717171] italic text-xs self-center">{addressReady ? "Calculating…" : "Enter shipping address"}</span>
+          }
         </div>
-        <div className="flex justify-between text-sm text-[#1a1a1a]">
-          <span className="text-[#717171]">Estimated taxes</span>
-          <span>—</span>
+        <div className="flex justify-between text-sm">
+          <span className="text-[#717171] flex items-center gap-1">
+            Estimated taxes
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#B5B5B5" strokeWidth="1.2"/><path d="M8 7v5" stroke="#B5B5B5" strokeWidth="1.3" strokeLinecap="round"/><circle cx="8" cy="5" r="0.7" fill="#B5B5B5"/></svg>
+          </span>
+          <span className="font-medium text-[#1a1a1a]">{taxNum > 0 ? `$${taxNum.toFixed(2)}` : "—"}</span>
         </div>
-        <div className="flex justify-between items-baseline pt-2 border-t border-[#E0E0E0]">
+      </div>
+
+      {/* Total — hidden in mobile expanded view (shown in the trigger row instead) */}
+      {!hideTotal && (
+        <div className="flex justify-between items-center pt-3 border-t border-[#E0E0E0]">
           <span className="text-base font-semibold text-[#1a1a1a]">Total</span>
-          <div className="text-right">
-            <span className="text-xs text-[#717171] mr-1">USD</span>
-            <span className="text-2xl font-semibold text-[#1a1a1a]">
-              ${totalNum.toFixed(2)}
-            </span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xs text-[#717171]">USD</span>
+            <span className="text-[22px] font-bold text-[#1a1a1a]">{formatPrice(cart?.total) || "—"}</span>
           </div>
         </div>
-        {savings > 0.01 && (
-          <p className="text-xs font-medium text-[#007A5C] bg-[#F0FAF7] rounded px-2 py-1">
-            🎉 TOTAL SAVINGS: ${savings.toFixed(2)}
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -206,9 +271,18 @@ export default function CheckoutPage() {
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
   });
-  const [shipMethod, setShipMethod] = useState("standard");
+  const [shipMethod, setShipMethod] = useState("");
   const [discountCode, setDiscountCode] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false); // mobile collapse
+  const [discountOpen, setDiscountOpen] = useState(false); // mobile discount toggle
+  const [sameAsBilling, setSameAsBilling] = useState(true);
+  const [wcCountries, setWcCountries] = useState<WCCountry[]>([]);
+  const [billingAddress, setBillingAddress] = useState<Address>({
+    firstName: "", lastName: "", address1: "", address2: "",
+    city: "", state: "", postcode: "", country: "United States",
+  });
+  const [addressReady, setAddressReady] = useState(false);
+  const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [cardMounted, setCardMounted] = useState(false);
@@ -222,10 +296,104 @@ export default function CheckoutPage() {
   // (avoids stale closure capturing old email/address/cart state)
   const chargeTokenRef = useRef<(token: string) => Promise<void>>(async () => {});
 
+  // Fetch WooCommerce country/state data on mount
+  useEffect(() => {
+    fetch("https://noirblanc.store/?rest_route=/noirblanc/v1/countries")
+      .then((r) => r.json())
+      .then((data: WCCountry[]) => {
+        // Put United States first, then rest alphabetically
+        // Strip " (XX)" code suffix WooCommerce sometimes appends to country names
+        const cleaned = data.map((c) => ({ ...c, name: c.name.replace(/\s*\([A-Z]{2}\)$/, "") }));
+        const us = cleaned.find((c) => c.code === "US");
+        const rest = cleaned.filter((c) => c.code !== "US");
+        const sorted = us ? [us, ...rest] : cleaned;
+        setWcCountries(sorted);
+        // Populate COUNTRY_CODES map dynamically (use cleaned names)
+        cleaned.forEach((c) => { COUNTRY_CODES[c.name] = c.code; });
+      })
+      .catch(() => {
+        // Fallback if endpoint fails
+        const fallback: WCCountry[] = [
+          { code: "US", name: "United States", states: [] },
+          { code: "CA", name: "Canada", states: [] },
+          { code: "GB", name: "United Kingdom", states: [] },
+          { code: "AU", name: "Australia", states: [] },
+        ];
+        setWcCountries(fallback);
+        fallback.forEach((c) => { COUNTRY_CODES[c.name] = c.code; });
+      });
+  }, []);
+
+  // Always fetch fresh cart on mount to clear stale data from localStorage
+  useEffect(() => {
+    fetchCart().then((fresh) => {
+      if (fresh) {
+        setCart(fresh);
+        const chosen = fresh.chosenShippingMethods ?? [];
+        if (chosen.length > 0) {
+          // WooCommerce session already has a shipping method selected (from a previous visit).
+          // Restore it so the shipping line and total display correctly without requiring
+          // the user to re-enter their address.
+          setShipMethod(chosen[0]);
+          setAddressReady(true);
+        } else {
+          setShipMethod("");
+          setAddressReady(false);
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const items = cart?.contents?.nodes ?? [];
-  const shippingCost = shipMethod === "express" ? 12 : shipMethod === "overnight" ? 24 : 0;
-  const subtotalNum = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
-  const totalNum = subtotalNum + shippingCost;
+  const totalNum = parseFloat((cart?.total ?? "0").replace(/[^0-9.]/g, ""));
+  const availableRates = cart?.availableShippingMethods?.[0]?.rates ?? [];
+
+  // Keep a ref to totalNum so Square express-pay always uses the latest total
+  // without triggering a full remount of the card form on every price change
+  const totalNumRef = useRef(totalNum);
+  useEffect(() => { totalNumRef.current = totalNum; }, [totalNum]);
+
+  // Sync shipMethod whenever cart changes (e.g. coupon applied changes chosen method)
+  useEffect(() => {
+    const chosen = cart?.chosenShippingMethods ?? [];
+    if (chosen.length > 0 && chosen[0] !== shipMethod) {
+      setShipMethod(chosen[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart]);
+
+  // When address fields are sufficiently filled, update WooCommerce session to get shipping rates
+  const handleAddressChange = useCallback((newAddress: typeof address) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    const ready = !!(newAddress.address1 && newAddress.city && newAddress.state && newAddress.postcode && newAddress.country);
+    setAddressReady(ready);
+    if (!ready) return;
+    addressDebounceRef.current = setTimeout(async () => {
+      const updated = await updateCustomerShippingAddress({
+        address1: newAddress.address1,
+        city: newAddress.city,
+        state: newAddress.state,
+        postcode: newAddress.postcode,
+        country: COUNTRY_CODES[newAddress.country] ?? newAddress.country,
+      });
+      if (updated) {
+        setCart(updated);
+        const rates = updated.availableShippingMethods?.[0]?.rates ?? [];
+        // Always auto-select the cheapest (first) rate
+        if (rates.length > 0) {
+          const firstRate = rates[0];
+          const afterSelect = await updateShippingMethod(firstRate.id);
+          if (afterSelect) {
+            setCart(afterSelect);
+            setShipMethod(firstRate.id);
+          } else {
+            setShipMethod(firstRate.id);
+          }
+        }
+      }
+    }, 800);
+  }, [setCart]);
 
   /* Load Square SDK */
   useEffect(() => {
@@ -270,13 +438,13 @@ export default function CheckoutPage() {
         setCardMounted(true);
 
         // Guard: don't initialize express pay with a $0 amount — it will be rejected
-        if (totalNum <= 0) return;
+        if (totalNumRef.current <= 0) return;
 
         // ── Separate paymentRequest objects for each button (can't share one instance) ──
         const makeRequest = () => p.paymentRequest({
           countryCode: "US",
           currencyCode: "USD",
-          total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
+          total: { amount: totalNumRef.current.toFixed(2), label: "Noir & Blanc" },
           requestBillingContact: false,
           requestShippingContact: false,
         });
@@ -285,7 +453,7 @@ export default function CheckoutPage() {
         try {
           const gp = await p.googlePay(makeRequest());
           if (!active) { gp.destroy(); return; }
-          await gp.attach!("#sq-google-pay");
+          await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
           if (!active) { gp.destroy(); return; }
 
           // Square injects the visual button but does NOT auto-call tokenize on
@@ -356,7 +524,9 @@ export default function CheckoutPage() {
       setGooglePayMounted(false);
       setApplePayMounted(false);
     };
-  }, [sdkReady, totalNum]);
+  // Only remount when SDK becomes ready — NOT on totalNum changes (that destroys the form)
+  // totalNumRef.current is always up-to-date for express pay tokenization
+  }, [sdkReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function chargeToken(token: string) {
     setPayError(null);
@@ -377,11 +547,14 @@ export default function CheckoutPage() {
           sourceId:       token,
           amountCents:    Math.round(totalNum * 100),
           buyerEmail:     email,
-          billing:        { ...address, email },
-          shipping:       address,
+          billing:        sameAsBilling
+            ? { ...address, email, country: COUNTRY_CODES[address.country] ?? address.country }
+            : { ...billingAddress, email, country: COUNTRY_CODES[billingAddress.country] ?? billingAddress.country },
+          shipping:       { ...address, country: COUNTRY_CODES[address.country] ?? address.country },
           items:          wcItems,
           shippingMethod: shipMethod,
-          shippingTotal:  shippingCost,
+          shippingTotal:  parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, "")),
+          coupons:        (cart?.appliedCoupons ?? []).map((c) => c.code),
         }),
       });
       const data = await res.json();
@@ -390,11 +563,40 @@ export default function CheckoutPage() {
         setPaying(false);
         return;
       }
+      // Save order details for the thank you page
+      const orderData = {
+        orderNumber: data.orderNumber ?? null,
+        email,
+        firstName: address.firstName,
+        lastName: address.lastName,
+        address: {
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          state: address.state,
+          postcode: address.postcode,
+          country: address.country,
+        },
+        items: items.map((item) => ({
+          name: item.product.node.name,
+          quantity: item.quantity,
+          total: item.total,
+          image: item.product.node.image?.sourceUrl ?? null,
+          variation: item.variation?.node.attributes.nodes.map((a) => `${a.value}`).join(" / ") ?? null,
+        })),
+        subtotal: cart?.subtotal ?? null,
+        shippingTotal: cart?.shippingTotal ?? null,
+        discountTotal: cart?.discountTotal ?? null,
+        total: totalNum.toFixed(2),
+        coupons: (cart?.appliedCoupons ?? []).map((c) => c.code),
+      };
+      try { sessionStorage.setItem("nb_order", JSON.stringify(orderData)); } catch {}
       setCart(null);
-      const successParams = data.orderNumber
-        ? `order=${data.orderNumber}`
-        : `payment=${data.paymentId}`;
-      router.push(`/checkout/success?${successParams}`);
+      const successParams = new URLSearchParams();
+      if (data.orderNumber) successParams.set("order", data.orderNumber);
+      else successParams.set("payment", data.paymentId);
+      successParams.set("total", totalNum.toFixed(2));
+      router.push(`/checkout/success?${successParams.toString()}`);
     } catch {
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
@@ -418,74 +620,114 @@ export default function CheckoutPage() {
   chargeTokenRef.current = chargeToken;
 
   const hasExpressCheckout = googlePayMounted || applePayMounted;
-  const subtotalDisplay = formatPrice(cart?.subtotal) || `$${totalNum.toFixed(2)}`;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white checkout-font" style={{ fontFamily: '"Poppins", sans-serif' }}>
 
       {/* ── Header ── */}
-      <header className="border-b border-[#E0E0E0]">
-        <div className="max-w-[1080px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <Link href="/" className="flex-shrink-0">
-            <Image
-              src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
-              alt="Noir & Blanc"
-              width={110}
-              height={32}
-              style={{ height: "auto" }}
-            />
-          </Link>
-          {/* Social proof */}
-          <div className="hidden sm:flex items-center gap-2 text-xs text-[#1a1a1a]">
-            <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} width="11" height="11" viewBox="0 0 12 12" fill="#FFB800"><path d="M6 1l1.236 2.506L10 3.882 8 5.833l.472 2.753L6 7.25l-2.472 1.336L4 5.833 2 3.882l2.764-.376z"/></svg>
-              ))}
-            </div>
-            <span className="font-semibold text-[11px] tracking-wide">30K+ HAPPY CUSTOMERS</span>
+      <header className="border-b border-[#E0E0E0] bg-white">
+        {/* Mobile header: logo + social proof + cart */}
+        <div className="lg:hidden">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="w-8" />
+            <Link href="/" className="flex flex-col items-center">
+              <img src="/checkout-icons/nb-logo.svg" alt="Noir & Blanc" className="h-8 w-auto" />
+              <span className="text-[9px] tracking-[0.05em] text-[#777] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
+            </Link>
+            <Link href="/shop" className="relative">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.5">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 01-8 0"/>
+              </svg>
+              {items.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-[#1a1a1a] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {items.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+              )}
+            </Link>
           </div>
-          {/* Cart icon */}
-          <Link href="/shop" className="flex-shrink-0">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.6">
+          {/* Social proof strip */}
+          <div className="border-t border-[#F0F0F0] px-4 py-2 flex items-center gap-3">
+            <img src="/checkout-icons/avatars.svg" alt="Happy customers" className="h-7 w-auto flex-shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] font-extrabold text-[#1a1a1a] leading-tight">18,347+ HAPPY CUSTOMERS</span>
+              <div className="flex items-center gap-3 text-[10px] text-[#555] font-medium mt-0.5">
+                <span className="flex items-center gap-1"><img src="/checkout-icons/truck.svg" alt="" className="h-3 w-auto" />Fast Shipping</span>
+                <span className="flex items-center gap-1"><img src="/checkout-icons/security.svg" alt="" className="h-3 w-auto" />1-Year warranty</span>
+                <span className="flex items-center gap-1"><img src="/checkout-icons/lock.svg" alt="" className="h-3 w-auto" />Secure Checkout</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Desktop header: full social proof banner */}
+        <div className="hidden lg:flex w-full px-8 py-3 items-center justify-between">
+          <div className="flex items-center justify-center gap-5 flex-1">
+            <Link href="/" className="flex-shrink-0 flex flex-col items-center">
+              <img src="/checkout-icons/nb-logo.svg" alt="Noir & Blanc" className="h-10 w-auto" />
+              <span className="text-[10px] tracking-[0.06em] text-[#555] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
+            </Link>
+            <div className="w-px bg-[#1a1a1a] mx-1" style={{ height: 56 }} />
+            <div className="flex flex-col items-start gap-1.5">
+              <img src="/checkout-icons/avatars.svg" alt="Happy customers" className="h-10 w-auto" />
+              <img src="/checkout-icons/stars.svg" alt="5 stars" className="h-[14px] w-auto" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-[20px] lg:text-[26px] font-extrabold text-[#1a1a1a] leading-none tracking-tight">18,347+ HAPPY CUSTOMERS</span>
+              <div className="flex items-center gap-5 text-[12px] text-[#333] font-medium">
+                <div className="flex items-center gap-1.5"><img src="/checkout-icons/truck.svg" alt="" className="h-[18px] w-auto" /><span>Fast Shipping</span></div>
+                <div className="flex items-center gap-1.5"><img src="/checkout-icons/security.svg" alt="" className="h-[18px] w-auto" /><span>1-Year warranty</span></div>
+                <div className="flex items-center gap-1.5"><img src="/checkout-icons/lock.svg" alt="" className="h-[18px] w-auto" /><span>Secure Checkout</span></div>
+              </div>
+            </div>
+          </div>
+          <Link href="/shop" className="flex-shrink-0 relative">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.5">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
             </svg>
+            {items.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-[#1a1a1a] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                {items.reduce((s, i) => s + i.quantity, 0)}
+              </span>
+            )}
           </Link>
         </div>
       </header>
 
-      {/* ── Mobile order summary toggle ── */}
-      <div className="lg:hidden border-b border-[#E0E0E0] bg-[#FAFAFA]">
+      {/* ── Mobile order summary toggle (top bar) ── */}
+      <div className="lg:hidden border-b border-[#E0E0E0] bg-[#F5F5F5]">
         <button
           onClick={() => setSummaryOpen(!summaryOpen)}
-          className="w-full flex items-center justify-between px-4 py-3"
+          className="w-full flex items-center justify-between px-4 py-3.5"
         >
-          <div className="flex items-center gap-2 text-[#1a6bbf] text-sm font-medium">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <div className="flex items-center gap-2 text-[#1a1a1a] text-sm font-medium">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 01-8 0"/>
             </svg>
-            <span>Order summary</span>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`}>
-              <path d="M2 5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <span className="font-medium">Order summary</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`}>
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-base font-semibold text-[#1a1a1a]">${totalNum.toFixed(2)}</span>
+          <span className="text-sm font-semibold text-[#1a1a1a]">${totalNum.toFixed(2)}</span>
         </button>
         {summaryOpen && (
-          <div className="px-4 pb-4 bg-white border-t border-[#E0E0E0]">
-            <OrderSummary discountCode={discountCode} setDiscountCode={setDiscountCode} shipping={shippingCost} />
+          <div className="px-4 py-4 bg-white border-t border-[#E0E0E0]">
+            <OrderSummary discountCode={discountCode} setDiscountCode={setDiscountCode} addressReady={addressReady} />
           </div>
         )}
       </div>
 
-      {/* ── Main layout ── */}
-      <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-16 lg:min-h-screen">
+      {/* ── Main layout: true full-bleed two-col — left=white, right=gray ── */}
+      <div className="lg:flex lg:min-h-screen">
 
-          {/* ── LEFT: Form ── */}
+        {/* LEFT column: white, ~53% width. Form is RIGHT-aligned (toward divider), max-w 580px, 40px padding — matches Shopify exactly */}
+        <div className="lg:w-[53%] bg-white flex lg:justify-end">
+          <div className="w-full max-w-[580px] px-4 sm:px-6 lg:pl-10 lg:pr-10">
           <div className="py-8 lg:py-10">
 
             {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
@@ -493,20 +735,29 @@ export default function CheckoutPage() {
               {hasExpressCheckout && (
                 <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
               )}
-              <div className={`grid gap-3 ${googlePayMounted && applePayMounted ? "grid-cols-2" : "grid-cols-1"}`}>
-                {/* Google Pay — Square injects iframe here, must never be unmounted */}
+              {/* When 2 buttons: side by side. When 1: centered with max-width */}
+              <div className={`flex gap-3 ${googlePayMounted && applePayMounted ? "" : "justify-center"}`}>
+                {/* Google Pay — Square injects iframe here; never unmount this div */}
                 <div
                   id="sq-google-pay"
-                  style={{ height: googlePayMounted ? 44 : 0, overflow: "hidden" }}
+                  style={{
+                    height: googlePayMounted ? 48 : 0,
+                    overflow: "hidden",
+                    borderRadius: 5,
+                    flex: googlePayMounted && applePayMounted ? "1" : "0 0 auto",
+                    minWidth: googlePayMounted && !applePayMounted ? 240 : undefined,
+                    width: googlePayMounted && applePayMounted ? "100%" : undefined,
+                  }}
                 />
-                {/* Apple Pay — native button using WebKit CSS, calls tokenize() on click */}
+                {/* Apple Pay */}
                 {applePayMounted && (
                   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore — WebKit-specific CSS properties for Apple Pay button
+                  // @ts-ignore
                   <button
                     type="button"
                     onClick={() => applePayRef.current?.tokenize?.()}
                     className="apple-pay-button"
+                    style={{ flex: googlePayMounted ? "1" : "0 0 240px" }}
                     aria-label="Buy with Apple Pay"
                   />
                 )}
@@ -524,7 +775,7 @@ export default function CheckoutPage() {
             <section className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-[#1a1a1a]">Contact</h2>
-                <button className="text-sm text-[#1a6bbf] hover:underline">Sign in</button>
+                <button className="text-sm text-[#1a1a1a] underline hover:opacity-70">Sign in</button>
               </div>
               <div className="space-y-3">
                 <Field
@@ -553,24 +804,32 @@ export default function CheckoutPage() {
                 <SelectField
                   label="Country/Region"
                   value={address.country}
-                  onChange={(v) => setAddress({ ...address, country: v })}
-                  options={COUNTRIES}
+                  onChange={(v) => { const a = { ...address, country: v, state: "" }; setAddress(a); handleAddressChange(a); }}
+                  options={wcCountries.length ? wcCountries.map((c) => c.name) : ["United States", "Canada", "United Kingdom", "Australia"]}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="First name" value={address.firstName} onChange={(v) => setAddress({ ...address, firstName: v })} autoComplete="given-name" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="First name (optional)" value={address.firstName} onChange={(v) => setAddress({ ...address, firstName: v })} autoComplete="given-name" />
                   <Field label="Last name" value={address.lastName} onChange={(v) => setAddress({ ...address, lastName: v })} autoComplete="family-name" />
                 </div>
-                <Field label="Address" value={address.address1} onChange={(v) => setAddress({ ...address, address1: v })} autoComplete="street-address" />
+                <Field label="Address" value={address.address1} onChange={(v) => { const a = { ...address, address1: v }; setAddress(a); handleAddressChange(a); }} autoComplete="street-address" />
                 <Field label="Apartment, suite, etc. (optional)" value={address.address2 ?? ""} onChange={(v) => setAddress({ ...address, address2: v })} />
-                <div className="grid grid-cols-3 gap-3">
-                  <Field label="City" value={address.city} onChange={(v) => setAddress({ ...address, city: v })} autoComplete="address-level2" />
-                  <SelectField
-                    label="State"
-                    value={address.state}
-                    onChange={(v) => setAddress({ ...address, state: v })}
-                    options={["—", ...US_STATES]}
-                  />
-                  <Field label="ZIP code" value={address.postcode} onChange={(v) => setAddress({ ...address, postcode: v })} autoComplete="postal-code" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Field label="City" value={address.city} onChange={(v) => { const a = { ...address, city: v }; setAddress(a); handleAddressChange(a); }} autoComplete="address-level2" />
+                  {(() => {
+                    const selectedCountry = wcCountries.find((c) => c.name === address.country);
+                    const states = selectedCountry?.states ?? [];
+                    return states.length > 0 ? (
+                      <SelectField
+                        label="State"
+                        value={address.state}
+                        onChange={(v) => { const a = { ...address, state: v }; setAddress(a); handleAddressChange(a); }}
+                        options={["—", ...states.map((s) => s.code)]}
+                      />
+                    ) : (
+                      <Field label="State / Province" value={address.state} onChange={(v) => { const a = { ...address, state: v }; setAddress(a); handleAddressChange(a); }} />
+                    );
+                  })()}
+                  <Field label="ZIP code" value={address.postcode} onChange={(v) => { const a = { ...address, postcode: v }; setAddress(a); handleAddressChange(a); }} autoComplete="postal-code" />
                 </div>
               </div>
             </section>
@@ -578,39 +837,52 @@ export default function CheckoutPage() {
             {/* Shipping method */}
             <section className="mb-6">
               <h2 className="text-base font-semibold text-[#1a1a1a] mb-3">Shipping method</h2>
-              <div className="border border-[#D4D4D4] rounded-[5px] overflow-hidden divide-y divide-[#E0E0E0]">
-                {[
-                  { id: "standard", label: "Standard", eta: "5–7 business days", price: "FREE", original: "$9.95" },
-                  { id: "express", label: "Express", eta: "2–3 business days", price: "$12.00", original: null },
-                  { id: "overnight", label: "Overnight", eta: "Next business day", price: "$24.00", original: null },
-                ].map((m) => (
-                  <label
-                    key={m.id}
-                    className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${
-                      shipMethod === m.id ? "bg-[#F0F5FF]" : "bg-white hover:bg-[#FAFAFA]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="ship"
-                        value={m.id}
-                        checked={shipMethod === m.id}
-                        onChange={() => setShipMethod(m.id)}
-                        className="accent-[#1a1a1a]"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-[#1a1a1a]">{m.label}</p>
-                        <p className="text-xs text-[#717171]">{m.eta}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {m.original && <span className="line-through text-[#B5B5B5] text-xs mr-1">{m.original}</span>}
-                      <span className={`text-sm font-medium ${m.price === "FREE" ? "text-[#007A5C]" : "text-[#1a1a1a]"}`}>{m.price}</span>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              {addressReady && availableRates.length > 0 ? (
+                <div className="border border-[#D4D4D4] rounded-[5px] overflow-hidden divide-y divide-[#E0E0E0]">
+                  {availableRates.map((rate) => {
+                    const isSelected = shipMethod === rate.id;
+                    // Always use rate.cost for display; for selected rate override with WC's computed shippingTotal
+                    // (WC applies coupon/discount logic to shippingTotal, so it's the authoritative value)
+                    const rateCost = parseFloat(rate.cost ?? "0") || 0;
+                    const wcShipping = parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, "") || "0");
+                    const displayCost = isSelected ? wcShipping : rateCost;
+                    const isFree = displayCost === 0;
+                    return (
+                      <label
+                        key={rate.id}
+                        className={`flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors ${
+                          isSelected ? "bg-[#F0F5FF]" : "bg-white hover:bg-[#FAFAFA]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="ship"
+                            value={rate.id}
+                            checked={isSelected}
+                            onChange={async () => {
+                              setShipMethod(rate.id);
+                              const updated = await updateShippingMethod(rate.id);
+                              if (updated) setCart(updated);
+                            }}
+                            className="accent-[#1a1a1a]"
+                          />
+                          <p className="text-sm font-medium text-[#1a1a1a]">{rate.label}</p>
+                        </div>
+                        <span className={`text-sm font-medium ${isFree ? "text-[#007A5C]" : "text-[#1a1a1a]"}`}>
+                          {isFree ? "FREE" : `$${displayCost.toFixed(2)}`}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="border border-[#D4D4D4] rounded-[5px] px-4 py-3 bg-[#FAFAFA]">
+                  <p className="text-sm text-[#717171]">
+                    {addressReady ? "Calculating shipping rates…" : "Enter your shipping address to view available shipping methods."}
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Payment */}
@@ -630,16 +902,34 @@ export default function CheckoutPage() {
                 {/* Tab header */}
                 <div className="flex items-center justify-between px-4 py-3 bg-[#F5F5F5] border-b border-[#D4D4D4]">
                   <span className="text-sm font-medium text-[#1a1a1a]">Credit card</span>
-                  <div className="flex gap-1">
-                    {["VISA","MC","AMEX"].map((b) => (
-                      <span key={b} className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[9px] font-bold text-[#555] h-5 flex items-center">{b}</span>
+                  <div className="flex items-center gap-1 relative group">
+                    {[
+                      { name: "VISA", src: "/checkout-icons/visa.svg" },
+                      { name: "Mastercard", src: "/checkout-icons/mastercard.svg" },
+                      { name: "Amex", src: "/checkout-icons/amex.svg" },
+                    ].map((card) => (
+                      <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
                     ))}
-                    <span className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[8px] font-bold text-[#555] h-5 flex items-center">···</span>
+                    {/* +5 badge — hover shows remaining cards */}
+                    <div className="relative">
+                      <button className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[9px] font-semibold text-[#555] h-6 flex items-center hover:border-[#999] transition-colors">+5</button>
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-wrap gap-1 bg-[#1a1a1a] rounded-[6px] p-2 w-[140px] z-10 shadow-lg">
+                        {[
+                          { name: "Discover", src: "/checkout-icons/discover.svg" },
+                          { name: "Diners", src: "/checkout-icons/diners.svg" },
+                          { name: "Elo", src: "/checkout-icons/elo.svg" },
+                          { name: "JCB", src: "/checkout-icons/jcb.svg" },
+                          { name: "UnionPay", src: "/checkout-icons/unionpay.svg" },
+                        ].map((card) => (
+                          <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Square card form */}
-                <div className="p-4">
+                <div className="px-4 pt-4 pb-2">
                   {!cardMounted && (
                     <div className="flex items-center justify-center h-[90px]">
                       <svg className="animate-spin h-5 w-5 text-neutral-300" viewBox="0 0 24 24" fill="none">
@@ -648,18 +938,99 @@ export default function CheckoutPage() {
                       </svg>
                     </div>
                   )}
-                  <div id="sq-card" style={{ minHeight: 90 }} />
+                  <div id="sq-card" />
                 </div>
               </div>
 
-              {/* Billing address */}
-              <div className="mt-3 border border-[#D4D4D4] rounded-[5px] px-4 py-3">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-[#D4D4D4] accent-[#1a1a1a]" />
+              {/* Billing address toggle */}
+              <div className="mt-3 border border-[#D4D4D4] rounded-[5px] overflow-hidden">
+                <label className="flex items-center gap-2.5 cursor-pointer px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={sameAsBilling}
+                    onChange={(e) => setSameAsBilling(e.target.checked)}
+                    className="w-4 h-4 rounded border-[#D4D4D4] accent-[#1a1a1a]"
+                  />
                   <span className="text-sm text-[#1a1a1a]">Use shipping address as billing address</span>
                 </label>
+                {/* Billing address form — shown when unchecked */}
+                {!sameAsBilling && (
+                  <div className="border-t border-[#E0E0E0] px-4 pb-4 pt-3 space-y-3">
+                    <SelectField
+                      label="Country/Region"
+                      value={billingAddress.country}
+                      onChange={(v) => setBillingAddress({ ...billingAddress, country: v, state: "" })}
+                      options={wcCountries.length ? wcCountries.map((c) => c.name) : ["United States", "Canada", "United Kingdom", "Australia"]}
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="First name (optional)" value={billingAddress.firstName} onChange={(v) => setBillingAddress({ ...billingAddress, firstName: v })} autoComplete="billing given-name" />
+                      <Field label="Last name" value={billingAddress.lastName} onChange={(v) => setBillingAddress({ ...billingAddress, lastName: v })} autoComplete="billing family-name" />
+                    </div>
+                    <Field label="Address" value={billingAddress.address1} onChange={(v) => setBillingAddress({ ...billingAddress, address1: v })} autoComplete="billing street-address" />
+                    <Field label="Apartment, suite, etc. (optional)" value={billingAddress.address2 ?? ""} onChange={(v) => setBillingAddress({ ...billingAddress, address2: v })} />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <Field label="City" value={billingAddress.city} onChange={(v) => setBillingAddress({ ...billingAddress, city: v })} autoComplete="billing address-level2" />
+                      {(() => {
+                        const selectedCountry = wcCountries.find((c) => c.name === billingAddress.country);
+                        const states = selectedCountry?.states ?? [];
+                        return states.length > 0 ? (
+                          <SelectField label="State" value={billingAddress.state} onChange={(v) => setBillingAddress({ ...billingAddress, state: v })} options={["—", ...states.map((s) => s.code)]} />
+                        ) : (
+                          <Field label="State / Province" value={billingAddress.state} onChange={(v) => setBillingAddress({ ...billingAddress, state: v })} />
+                        );
+                      })()}
+                      <Field label="ZIP code" value={billingAddress.postcode} onChange={(v) => setBillingAddress({ ...billingAddress, postcode: v })} autoComplete="billing postal-code" />
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
+
+            {/* ── Mobile: Add discount + Total accordion ── */}
+            <div className="lg:hidden mb-5">
+              {!discountOpen ? (
+                /* ── Collapsed: pill + Total row ── */
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setDiscountOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 border border-[#D4D4D4] rounded-full text-sm font-medium text-[#1a1a1a] bg-white"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                    Add discount
+                  </button>
+                  <button onClick={() => setDiscountOpen(true)} className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {items[0]?.product.node.image && (
+                        <div className="w-10 h-10 rounded-[6px] border border-[#E0E0E0] overflow-hidden bg-white flex-shrink-0">
+                          <img src={items[0].product.node.image.sourceUrl} alt="" className="w-full h-full object-contain p-0.5" />
+                        </div>
+                      )}
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-[#1a1a1a]">Total</p>
+                        <p className="text-xs text-[#717171]">{items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "items"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-[#717171]">USD</span>
+                      <span className="text-base font-bold text-[#1a1a1a]">${totalNum.toFixed(2)}</span>
+                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                /* ── Expanded: full order summary replaces pill + Total row ── */
+                <div>
+                  <button onClick={() => setDiscountOpen(false)} className="w-full flex items-center justify-between mb-4">
+                    <span className="text-base font-semibold text-[#1a1a1a]">Order summary</span>
+                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" className="rotate-180"><path d="M2 4l4 4 4-4" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                  <OrderSummary discountCode={discountCode} setDiscountCode={setDiscountCode} addressReady={addressReady} />
+                </div>
+              )}
+            </div>
 
             {/* Error */}
             {payError && (
@@ -672,6 +1043,7 @@ export default function CheckoutPage() {
                 {payError}
               </div>
             )}
+
 
             {/* Pay now button */}
             <button
@@ -687,58 +1059,31 @@ export default function CheckoutPage() {
                   </svg>
                   Processing…
                 </>
-              ) : (
-                `Pay now`
-              )}
+              ) : "Pay now"}
             </button>
 
             {/* Footer links */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-6 text-xs text-[#717171]">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-5 pb-10 text-xs text-[#717171]">
               {["Refund policy","Shipping","Privacy policy","Terms of service","Contact"].map((l) => (
                 <a key={l} href="#" className="hover:text-[#1a1a1a] hover:underline transition-colors">{l}</a>
               ))}
             </div>
-          </div>
+          </div>{/* end py-8 */}
+          </div>{/* end max-w-[580px] */}
+        </div>{/* end left column */}
 
-          {/* ── RIGHT: Order summary (desktop only) ── */}
-          <div className="hidden lg:block border-l border-[#E0E0E0] bg-[#FAFAFA] py-10 px-8">
-            <div className="sticky top-8">
-              <OrderSummary discountCode={discountCode} setDiscountCode={setDiscountCode} shipping={shippingCost} />
+        {/* RIGHT column: gray sticky order summary (desktop only), ~47% width matching Shopify */}
+        <div className="hidden lg:flex lg:flex-col lg:w-[47%] bg-[#F5F5F5] border-l border-[#E0E0E0]">
+          <div className="sticky top-0 flex justify-start">
+            {/* Inner content: 480px wide, 40px padding — matches Shopify exactly */}
+            <div className="w-full py-10" style={{ maxWidth: 560, paddingLeft: 40, paddingRight: 40 }}>
+              <OrderSummary discountCode={discountCode} setDiscountCode={setDiscountCode} addressReady={addressReady} />
             </div>
           </div>
-
         </div>
-      </div>
 
-      {/* ── Mobile sticky Pay Now ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E0E0E0] px-4 py-3 z-20">
-        <button
-          onClick={handlePay}
-          disabled={!email || !address.firstName || !address.address1 || !cardMounted || paying}
-          className="w-full h-[50px] rounded-[5px] bg-[#1a1a1a] text-white text-base font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {paying ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
-              Processing…
-            </>
-          ) : (
-            <>
-              <span>Pay now</span>
-              <span className="text-sm font-normal opacity-75">· ${totalNum.toFixed(2)}</span>
-            </>
-          )}
-        </button>
-        <p className="text-center text-xs text-[#717171] mt-2">
-          Total savings: ${parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, "")).toFixed(2)}
-        </p>
-      </div>
+      </div>{/* end lg:flex */}
 
-      {/* Mobile bottom padding so content isn't hidden behind sticky button */}
-      <div className="lg:hidden h-24" />
     </div>
   );
 }

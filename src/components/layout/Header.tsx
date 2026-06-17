@@ -8,10 +8,10 @@ import { useCartStore } from "@/store/cartStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 
 const navLinks = [
-  { label: "New In", href: "/shop?category=new-in" },
-  { label: "Crossbody Bags", href: "/shop?category=crossbody-bags" },
-  { label: "Bag Straps", href: "/shop?category=bag-straps" },
-  { label: "Wallets", href: "/shop?category=wallets" },
+  { label: "New In", href: "/collections/new-in" },
+  { label: "Crossbody Bags", href: "/collections/crossbody-bags" },
+  { label: "Bag Straps", href: "/collections/bag-straps" },
+  { label: "Wallets", href: "/collections/wallets" },
 ];
 
 export default function Header() {
@@ -21,7 +21,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white border-b border-neutral-100">
+      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Mobile menu button */}

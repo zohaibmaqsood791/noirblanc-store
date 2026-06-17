@@ -1,71 +1,42 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 
 const UGC_ITEMS = [
-  { id: 1, src: "https://cdn.shopify.com/videos/c/o/v/39ddfffae7b24858854eddb8978961c4.mov", label: "Your perfect plus-one" },
-  { id: 2, src: "https://cdn.shopify.com/videos/c/o/v/f6f28399f1e74d2e97cb77d7a6d41409.mov", label: "Elevate your everyday" },
-  { id: 3, src: "https://cdn.shopify.com/videos/c/o/v/97b3af1b409c48d5b39f2bec018ff2c0.mp4", label: "Your work day just got better" },
-  { id: 4, src: "https://cdn.shopify.com/videos/c/o/v/bc5644cc829f4f25b5ee4f8fdc4ac3fb.mp4", label: "Pack with me – Weekend Bag" },
-  { id: 5, src: "https://cdn.shopify.com/videos/c/o/v/09ed40a4fc84407d918f5a1fd5052e49.mp4", label: "Four new styles have entered the building" },
+  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-1.png" },
+  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-2.png" },
+  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-3.png" },
+  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-4.jpg" },
+  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-5.jpg" },
 ];
 
-function LazyVideo({ src, className }: { src: string; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!ref.current || visible) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) { setVisible(true); io.disconnect(); }
-        });
-      },
-      { rootMargin: "200px" }
-    );
-    io.observe(ref.current);
-    return () => io.disconnect();
-  }, [visible]);
-
-  return (
-    <div ref={ref} className={className}>
-      {visible ? (
-        <video src={src} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-neutral-300 via-neutral-400 to-neutral-600" />
-      )}
-    </div>
-  );
-}
-
+/* ── Full-screen modal ───────────────────────────────────────────────────── */
 function UGCModal({ startIndex, onClose }: { startIndex: number; onClose: () => void }) {
   const [idx, setIdx] = useState(startIndex);
   const [muted, setMuted] = useState(true);
   const item = UGC_ITEMS[idx];
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  useEffect(() => { setMuted(true); }, [idx]);
-
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center"
-      style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.88)" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[400px] mx-4 rounded-2xl overflow-hidden bg-black"
+        className="relative w-full max-w-[380px] mx-4 rounded-2xl overflow-hidden bg-black"
         style={{ aspectRatio: "9/16", maxHeight: "88vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <video src={item.src} autoPlay loop muted={muted} playsInline className="w-full h-full object-cover" />
-
-        {/* Controls */}
+        <video
+          key={item.src}
+          src={item.src}
+          autoPlay
+          loop
+          muted={muted}
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        {/* Mute / Close */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <button onClick={() => setMuted((m) => !m)} className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors">
             {muted ? (
@@ -86,15 +57,13 @@ function UGCModal({ startIndex, onClose }: { startIndex: number; onClose: () => 
             </svg>
           </button>
         </div>
-
-        {/* Prev/Next */}
-        <button onClick={() => setIdx((i) => (i - 1 + UGC_ITEMS.length) % UGC_ITEMS.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors">
+        {/* Prev / Next */}
+        <button onClick={() => setIdx((i) => (i - 1 + UGC_ITEMS.length) % UGC_ITEMS.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <button onClick={() => setIdx((i) => (i + 1) % UGC_ITEMS.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors">
+        <button onClick={() => setIdx((i) => (i + 1) % UGC_ITEMS.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-
         {/* Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
           {UGC_ITEMS.map((_, i) => (
@@ -106,42 +75,76 @@ function UGCModal({ startIndex, onClose }: { startIndex: number; onClose: () => 
   );
 }
 
+/* ── Section ─────────────────────────────────────────────────────────────── */
 export default function UGCStrip() {
   const [open, setOpen] = useState(false);
   const [startIdx, setStartIdx] = useState(0);
 
   return (
-    <section className="py-10 sm:py-12 bg-white">
+    <section className="py-10 sm:py-12" style={{ backgroundColor: "#F8FAF8" }}>
+      {/* Heading */}
       <div className="text-center mb-6 sm:mb-8 px-4">
-        <h2 className="font-heading text-[22px] sm:text-[28px] font-semibold text-neutral-900">
-          15,243+ happy customers (and counting)
+        <p className="text-[12px] sm:text-[13px] text-neutral-500 tracking-wide italic">
+          Real moments from our community
+        </p>
+        <h2 className="font-heading text-[22px] sm:text-[28px] font-semibold text-neutral-900 mt-1">
+          18,347+ happy customers (and counting)
         </h2>
-        <p className="text-[13px] text-neutral-500 mt-1">Real moments from our community</p>
       </div>
 
+      {/* Video grid */}
       <div
-        className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 snap-x snap-mandatory lg:grid lg:grid-cols-5 lg:overflow-visible lg:gap-3"
+        className="flex gap-2 sm:gap-3 overflow-x-auto snap-x snap-mandatory px-3 sm:px-4 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-6 xl:px-8"
         style={{ scrollbarWidth: "none" }}
       >
         {UGC_ITEMS.map((item, i) => (
-          <button
+          <div
             key={item.id}
-            type="button"
-            onClick={() => { setStartIdx(i); setOpen(true); }}
-            className="flex-none aspect-[9/16] overflow-hidden bg-neutral-100 snap-start relative group cursor-pointer w-[42vw] sm:w-[28vw] lg:w-full first:ml-3 last:mr-3 sm:first:ml-6 sm:last:mr-6 lg:first:ml-0 lg:last:mr-0"
+            className="flex-none w-[52vw] sm:w-[36vw] md:w-[28vw] lg:w-full snap-start"
           >
-            <LazyVideo src={item.src} className="w-full h-full" />
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none">
-              <p className="text-white font-semibold text-xs sm:text-sm leading-snug text-left line-clamp-2">{item.label}</p>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-white/85 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-neutral-900 ml-0.5">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
+            <button
+              type="button"
+              onClick={() => { setStartIdx(i); setOpen(true); }}
+              className="relative w-full group cursor-pointer overflow-hidden rounded-2xl bg-neutral-200 block"
+              style={{ aspectRatio: "9/16" }}
+            >
+              {/* Poster image shown immediately — no video download on page load */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.poster}
+                alt={item.label}
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Video loads on hover only */}
+              <video
+                src={item.src}
+                loop
+                muted
+                playsInline
+                preload="none"
+                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                onMouseEnter={(e) => { const v = e.currentTarget; v.load(); v.play().catch(() => {}); }}
+                onMouseLeave={(e) => { e.currentTarget.pause(); }}
+              />
+
+              {/* Bottom label */}
+              <div className="absolute bottom-0 left-0 right-0 px-3 pt-10 pb-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none">
+                <p className="text-white font-semibold text-[13px] leading-snug line-clamp-2 text-left">
+                  {item.label}
+                </p>
               </div>
-            </div>
-          </button>
+
+              {/* Play icon */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity duration-200 pointer-events-none">
+                <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-neutral-900 ml-0.5">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              </div>
+            </button>
+          </div>
         ))}
       </div>
 

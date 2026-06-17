@@ -10,11 +10,13 @@ export const PRODUCT_FRAGMENT = gql`
     shortDescription
     onSale
     image {
+      databaseId
       sourceUrl
       altText
     }
-    galleryImages {
+    galleryImages(first: 100) {
       nodes {
+        databaseId
         sourceUrl
         altText
       }
@@ -52,6 +54,7 @@ export const PRODUCT_FRAGMENT = gql`
             }
           }
           image {
+            databaseId
             sourceUrl
             altText
           }
@@ -89,6 +92,17 @@ export const GET_PRODUCT_BY_SLUG = gql`
   }
 `;
 
+export const GET_PRODUCTS_BY_SEARCH = gql`
+  ${PRODUCT_FRAGMENT}
+  query GetProductsBySearch($search: String!, $first: Int) {
+    products(first: $first, where: { search: $search, status: "publish" }) {
+      nodes {
+        ...ProductFields
+      }
+    }
+  }
+`;
+
 export const GET_CATEGORIES = gql`
   query GetCategories {
     productCategories(where: { hideEmpty: true }) {
@@ -117,31 +131,24 @@ export const GET_CART = gql`
           product {
             node {
               id
+              databaseId
               name
               slug
-              image {
-                sourceUrl
-                altText
-              }
-              ... on SimpleProduct {
-                price
-              }
-              ... on VariableProduct {
-                price
-              }
+              image { sourceUrl altText }
+              ... on SimpleProduct { price regularPrice salePrice }
+              ... on VariableProduct { price regularPrice salePrice }
             }
           }
           variation {
             node {
               id
+              databaseId
               name
               price
-              attributes {
-                nodes {
-                  name
-                  value
-                }
-              }
+              regularPrice
+              salePrice
+              image { sourceUrl altText }
+              attributes { nodes { name value } }
             }
           }
         }
@@ -150,7 +157,14 @@ export const GET_CART = gql`
       total
       subtotal
       shippingTotal
+      feeTotal
       discountTotal
+      appliedCoupons { code discountAmount }
+      availableShippingMethods {
+        packageDetails
+        rates { id cost label methodId }
+      }
+      chosenShippingMethods
     }
   }
 `;
@@ -169,8 +183,8 @@ export const CART_FIELDS = gql`
             name
             slug
             image { sourceUrl altText }
-            ... on SimpleProduct { price }
-            ... on VariableProduct { price }
+            ... on SimpleProduct { price regularPrice salePrice }
+            ... on VariableProduct { price regularPrice salePrice }
           }
         }
         variation {
@@ -180,6 +194,9 @@ export const CART_FIELDS = gql`
             name
             price
             attributes { nodes { name value } }
+            image { sourceUrl altText }
+            regularPrice
+            salePrice
           }
         }
       }
@@ -188,7 +205,69 @@ export const CART_FIELDS = gql`
     total
     subtotal
     shippingTotal
+    feeTotal
     discountTotal
+    appliedCoupons {
+      code
+      discountAmount
+    }
+    availableShippingMethods {
+      packageDetails
+      rates {
+        id
+        cost
+        label
+        methodId
+      }
+    }
+    chosenShippingMethods
+  }
+`;
+
+export const APPLY_COUPON = gql`
+  ${CART_FIELDS}
+  mutation ApplyCoupon($code: String!) {
+    applyCoupon(input: { code: $code }) {
+      cart { ...CartFields }
+    }
+  }
+`;
+
+export const REMOVE_COUPON = gql`
+  ${CART_FIELDS}
+  mutation RemoveCoupon($code: String!) {
+    removeCoupons(input: { codes: [$code] }) {
+      cart { ...CartFields }
+    }
+  }
+`;
+
+export const UPDATE_SHIPPING_METHOD = gql`
+  ${CART_FIELDS}
+  mutation UpdateShippingMethod($shippingMethods: [String]) {
+    updateShippingMethod(input: { shippingMethods: $shippingMethods }) {
+      cart { ...CartFields }
+    }
+  }
+`;
+
+export const UPDATE_CUSTOMER_SHIPPING = gql`
+  ${CART_FIELDS}
+  mutation UpdateCustomerShipping($input: UpdateCustomerInput!) {
+    updateCustomer(input: $input) {
+      customer {
+        shipping {
+          address1
+          city
+          state
+          postcode
+          country
+        }
+      }
+    }
+  }
+  query GetCartAfterAddressUpdate {
+    cart { ...CartFields }
   }
 `;
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
 const isSandbox = process.env.SQUARE_ENVIRONMENT !== "production";
@@ -6,7 +6,7 @@ const SQUARE_API_BASE = isSandbox
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 
-const WC_ENDPOINT = "https://noirandblancnyc.kinsta.cloud/?rest_route=/noirblanc/v1/checkout";
+const WC_ENDPOINT = "https://noirblanc.store/?rest_route=/noirblanc/v1/checkout";
 const WC_SECRET   = process.env.NOIRBLANC_CHECKOUT_SECRET ?? "nb_hdls_7x9kQmP2wRtZvL4nEsYcJ8uA";
 
 export async function POST(req: NextRequest) {
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       items,
       shippingMethod,
       shippingTotal,
+      coupons,
     } = body as {
       sourceId: string;
       amountCents: number;
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       }[];
       shippingMethod?: string;
       shippingTotal?: number;
+      coupons?: string[];
     };
 
     if (!sourceId || !amountCents) {
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
           items: items ?? [],
           shippingMethod: shippingMethod ?? "standard",
           shippingTotal: shippingTotal ?? 0,
+          coupons: coupons ?? [],
         }),
       });
 

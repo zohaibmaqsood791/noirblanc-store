@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GET_PRODUCTS, GET_CATEGORIES } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
@@ -22,10 +23,9 @@ async function getProducts(category?: string) {
 
 async function getCategories() {
   try {
-    const data = await graphqlClient.request<{ productCategories: { nodes: Category[] } }>(
-      GET_CATEGORIES
-    );
-    // Filter out "Uncategorized"
+    const data = await graphqlClient.request<{
+      productCategories: { nodes: Category[] };
+    }>(GET_CATEGORIES);
     return data.productCategories.nodes.filter((c) => c.slug !== "uncategorized");
   } catch (e) {
     console.error("Failed to fetch categories:", e);
@@ -41,58 +41,79 @@ export default async function ShopPage({ searchParams }: PageProps) {
   ]);
 
   const currentCategory = categories.find((c) => c.slug === category);
+  const pageTitle = currentCategory?.name ?? "All Products";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-heading text-4xl font-bold tracking-tight">
-          {currentCategory ? currentCategory.name : "All Products"}
-        </h1>
-        <p className="text-neutral-500 mt-2 text-sm">{products.length} products</p>
-      </div>
+    <div style={{ backgroundColor: "#F8FAF8" }} className="min-h-screen">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
 
-      {/* Category filters */}
-      {categories.length > 0 && (
-        <div className="flex gap-3 flex-wrap mb-10">
-          <a
-            href="/shop"
-            className={`text-xs font-medium px-4 py-2 border rounded-full transition-colors ${
-              !category
-                ? "bg-black text-white border-black"
-                : "border-neutral-300 text-neutral-600 hover:border-black"
-            }`}
-          >
-            All
-          </a>
-          {categories.map((cat) => (
-            <a
-              key={cat.slug}
-              href={`/shop?category=${cat.slug}`}
-              className={`text-xs font-medium px-4 py-2 border rounded-full transition-colors ${
-                category === cat.slug
-                  ? "bg-black text-white border-black"
-                  : "border-neutral-300 text-neutral-600 hover:border-black"
+        {/* Breadcrumb */}
+        <nav className="text-sm text-black/50 mb-4">
+          <Link href="/" className="hover:text-black transition-colors">Home</Link>
+          {" / "}
+          <Link href="/shop" className="hover:text-black transition-colors">Collections</Link>
+          {currentCategory && (
+            <>
+              {" / "}
+              <span className="text-black">{currentCategory.name}</span>
+            </>
+          )}
+        </nav>
+
+        {/* Page heading */}
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-2">
+            {pageTitle}
+          </h1>
+          <p className="text-neutral-500 text-sm">{products.length} products</p>
+        </div>
+
+        {/* Category filter pills */}
+        {categories.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-10">
+            <Link
+              href="/shop"
+              className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
+                !category
+                  ? "bg-[#538125] text-white border-[#538125]"
+                  : "border-neutral-300 text-neutral-600 hover:border-[#538125] hover:text-[#538125]"
               }`}
             >
-              {cat.name}
-            </a>
-          ))}
-        </div>
-      )}
+              All
+            </Link>
+            {categories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/shop?category=${cat.slug}`}
+                className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
+                  category === cat.slug
+                    ? "bg-[#538125] text-white border-[#538125]"
+                    : "border-neutral-300 text-neutral-600 hover:border-[#538125] hover:text-[#538125]"
+                }`}
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
+        )}
 
-      {/* Grid */}
-      {products.length === 0 ? (
-        <div className="text-center py-24 text-neutral-400">
-          <p className="text-lg">No products found.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      )}
+        {/* Product grid */}
+        {products.length === 0 ? (
+          <div className="text-center py-24 text-neutral-400">
+            <p className="text-lg font-medium">No products found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {products.map((product, i) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                loading={i < 8 ? "eager" : "lazy"}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

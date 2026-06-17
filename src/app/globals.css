@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-heading: var(--font-heading);
-  --font-body: var(--font-body);
+  --font-heading: var(--font-heading, "Raleway", sans-serif);
+  --font-body: var(--font-body, "Poppins", sans-serif);
 
   --color-noir: #0a0a0a;
   --color-blanc: #ffffff;
@@ -30,22 +30,49 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-body), "Poppins", sans-serif;
 }
 
+/* Checkout field labels: light weight so they don't look bold */
+.checkout-font .field-label {
+  font-weight: 300;
+  color: #999;
+}
+
 /* Apple Pay button — only renders in Safari/WebKit */
 .apple-pay-button {
   -webkit-appearance: -apple-pay-button;
-  -apple-pay-button-type: buy;
+  -apple-pay-button-type: plain;
   -apple-pay-button-style: black;
   display: block;
   width: 100%;
-  height: 44px;
+  height: 48px;
   border: none;
   cursor: pointer;
   border-radius: 5px;
 }
 
+/* Remove Square Google Pay iframe border */
+#sq-google-pay iframe,
+#sq-google-pay button,
+#sq-google-pay > * {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Customer marquee */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
 
 /* Custom scrollbar */

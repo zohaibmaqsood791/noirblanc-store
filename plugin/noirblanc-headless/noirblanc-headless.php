@@ -17,7 +17,97 @@ add_action('rest_api_init', function () {
         'callback'            => 'noirblanc_create_order',
         'permission_callback' => 'noirblanc_verify_secret',
     ]);
+    // Public endpoint — no auth needed, returns WooCommerce country+state data
+    register_rest_route('noirblanc/v1', '/countries', [
+        'methods'             => 'GET',
+        'callback'            => 'noirblanc_get_countries',
+        'permission_callback' => '__return_true',
+    ]);
+    // Public endpoint — product reviews with images
+    register_rest_route('noirblanc/v1', '/reviews', [
+        'methods'             => 'GET',
+        'callback'            => 'noirblanc_get_reviews',
+        'permission_callback' => '__return_true',
+    ]);
 });
+
+function noirblanc_get_countries(): WP_REST_Response {
+    $countries = WC()->countries->get_countries();
+    $all_states = WC()->countries->get_states();
+    $result = [];
+    foreach ($countries as $code => $name) {
+        $result[] = [
+            'code'   => $code,
+            'name'   => $name,
+            'states' => isset($all_states[$code]) ? array_map(
+                fn($sc, $sn) => ['code' => $sc, 'name' => $sn],
+                array_keys($all_states[$code]),
+                array_values($all_states[$code])
+            ) : [],
+        ];
+    }
+    return new WP_REST_Response($result, 200);
+}
+
+function noirblanc_get_reviews(WP_REST_Request $request): WP_REST_Response {
+    $args = [
+        'type'    => 'review',
+        'status'  => 'approve',
+        'number'  => 0,
+        'orderby' => 'comment_date_gmt',
+        'order'   => 'DESC',
+    ];
+
+    $comments = get_comments($args);
+
+    $reviews = [];
+    foreach ($comments as $c) {
+        $rating = intval(get_comment_meta($c->comment_ID, 'rating', true));
+        $title  = get_comment_meta($c->comment_ID, 'title', true);
+
+        $images = [];
+
+        // Prefer WP attachment IDs (images stored on our server)
+        $attach_ids = get_comment_meta($c->comment_ID, 'review_images', true);
+        if ($attach_ids) {
+            foreach (explode(',', $attach_ids) as $aid) {
+                $src = wp_get_attachment_url(intval($aid));
+                if ($src) $images[] = $src;
+            }
+        }
+
+        // Fallback: external URLs (review_image_urls)
+        if (empty($images)) {
+            $image_urls = get_comment_meta($c->comment_ID, 'review_image_urls', true);
+            if ($image_urls) {
+                foreach (explode(',', $image_urls) as $url) {
+                    $url = trim($url);
+                    if ($url) $images[] = $url;
+                }
+            }
+        }
+
+        $reviews[] = [
+            'id'       => $c->comment_ID,
+            'name'     => $c->comment_author,
+            'rating'   => $rating ?: 5,
+            'title'    => $title ?: '',
+            'body'     => $c->comment_content,
+            'date'     => $c->comment_date_gmt,
+            'images'   => $images,
+        ];
+    }
+
+    // Sort: reviews with images first, then by date desc
+    usort($reviews, function($a, $b) {
+        $a_has = !empty($a['images']) ? 1 : 0;
+        $b_has = !empty($b['images']) ? 1 : 0;
+        if ($a_has !== $b_has) return $b_has - $a_has;
+        return strcmp($b['date'], $a['date']);
+    });
+
+    return new WP_REST_Response($reviews, 200);
+}
 
 function noirblanc_verify_secret(WP_REST_Request $request): bool {
     return $request->get_header('X-Noirblanc-Secret') === NOIRBLANC_SECRET;
@@ -34,10 +124,14 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
     $shipping_method  = sanitize_text_field($data['shippingMethod']  ?? 'standard');
     $shipping_total   = floatval($data['shippingTotal']              ?? 0);
     $customer_email   = sanitize_email($billing['email']             ?? '');
+    $coupons          = $data['coupons'] ?? [];
 
     // ── Create order ──
+    // Use 'pending' so WooCommerce does not fire the new-order email before
+    // items and totals are populated. payment_complete() below transitions to
+    // 'processing' and triggers the emails at the right time.
     $order = wc_create_order([
-        'status'      => 'processing',
+        'status'      => 'pending',
         'customer_id' => 0,
     ]);
 
@@ -87,6 +181,16 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
         'country'    => sanitize_text_field($shipping['country']   ?? $billing['country']   ?? 'US'),
     ], 'shipping');
 
+    // ── Apply coupons ──
+    if (!empty($coupons) && is_array($coupons)) {
+        foreach ($coupons as $coupon_code) {
+            $coupon_code = sanitize_text_field($coupon_code);
+            if ($coupon_code) {
+                $order->apply_coupon($coupon_code);
+            }
+        }
+    }
+
     // ── Shipping line ──
     if ($shipping_total > 0) {
         $shipping_item = new WC_Order_Item_Shipping();
@@ -109,10 +213,6 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
         wc_price($order->get_total()),
         $payment_id
     ));
-
-    // ── Send customer email ──
-    WC()->mailer()->emails['WC_Email_New_Order']->trigger($order->get_id());
-    WC()->mailer()->emails['WC_Email_Customer_Processing_Order']->trigger($order->get_id());
 
     return new WP_REST_Response([
         'success'     => true,

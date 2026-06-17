@@ -1,39 +1,43 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { graphqlClient } from "@/lib/graphql/client";
-import { GET_PRODUCTS } from "@/lib/graphql/queries";
+import { GET_PRODUCTS, GET_PRODUCTS_BY_SEARCH } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
 import Carousel from "@/components/home/Carousel";
 import UGCStrip from "@/components/home/UGCStrip";
-import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/types";
 
 /* ─── Data ──────────────────────────────────────────────────────────────── */
-async function getProducts(first = 8): Promise<Product[]> {
+async function getProducts(first = 8, category?: string): Promise<Product[]> {
   try {
     const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
-      GET_PRODUCTS, { first }
+      GET_PRODUCTS, { first, category }
     );
     return data.products.nodes;
   } catch { return []; }
 }
 
-/* ─── Category tiles ────────────────────────────────────────────────────── */
-const CATEGORIES = [
-  { label: "Crossbody Bags", href: "/shop?category=crossbody-bags", emoji: "👜" },
-  { label: "Bag Straps",     href: "/shop?category=bag-straps",     emoji: "🎀" },
-  { label: "Wallets",        href: "/shop?category=wallets",        emoji: "👛" },
-  { label: "New In",         href: "/shop",                         emoji: "✨" },
-  { label: "Best Sellers",   href: "/shop",                         emoji: "⭐" },
-  { label: "Sale",           href: "/shop",                         emoji: "🏷️" },
-];
+async function getLumaProducts(): Promise<Product[]> {
+  try {
+    const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
+      GET_PRODUCTS_BY_SEARCH, { search: "Luma", first: 8 }
+    );
+    return data.products.nodes;
+  } catch { return []; }
+}
 
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 export default async function HomePage() {
-  const allProducts = await getProducts(12);
-  const newIn       = allProducts.slice(0, 8);
-  const bestSellers = allProducts.slice(0, 8);
-  const collection  = allProducts.slice(0, 4);
+  const [allProducts, lumaProducts, newInProducts, strapProducts] = await Promise.all([
+    getProducts(12),
+    getLumaProducts(),
+    getProducts(8, "new-in"),
+    getProducts(4, "bag-straps"),
+  ]);
+  const newIn       = newInProducts.length >= 2 ? newInProducts : allProducts.slice(0, 8);
+  // Bestsellers = Luma bags (if found), fallback to allProducts
+  const bestSellers = lumaProducts.length >= 2 ? lumaProducts : allProducts.slice(0, 8);
+  const collection  = strapProducts.length >= 2 ? strapProducts : allProducts.slice(0, 4);
 
   return (
     <div className="min-h-screen">
@@ -65,96 +69,78 @@ export default async function HomePage() {
       </section>
 
       {/* ── Press strip ── */}
-      <section className="py-6 px-4 sm:px-8 border-b border-[#CAD3BE]/40" style={{ backgroundColor: "#EAEEE3" }}>
-        <div className="max-w-[1200px] mx-auto flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-10 gap-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] sm:text-[13px] font-semibold tracking-wider uppercase text-neutral-700">
-              As Seen On Sponsored Content
-            </span>
-            <span className="text-neutral-400 hidden sm:inline">|</span>
+      <section style={{ backgroundColor: "#eaeee3" }}>
+        <div className="py-4 lg:py-6">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex flex-col lg:flex-row items-center gap-8">
+            {/* Label */}
+            <div className="font-extrabold text-center lg:text-left text-[13.6px] tracking-[-0.28px] uppercase whitespace-nowrap" style={{ color: "#3d472d" }}>
+              As seen on sponsored content.
+            </div>
+            {/* Divider */}
+            <div className="w-px h-5 bg-[#2A2552] hidden lg:block shrink-0" />
+            {/* Logos container */}
+            <div className="relative w-full overflow-hidden">
+              {/* Mobile: marquee */}
+              <div className="flex md:hidden gap-8 whitespace-nowrap w-max items-center" style={{ animation: "marquee 25s linear infinite" }}>
+                {[...Array(4)].flatMap((_, rep) => [
+                  { alt: "CBS NEWS", src: "/press-logos/cbs-news.png" },
+                  { alt: "ABC",      src: "/press-logos/abc.png" },
+                  { alt: "MSN",      src: "/press-logos/msn.png" },
+                  { alt: "Yahoo",    src: "/press-logos/yahoo.png" },
+                ].map((logo, i) => (
+                  <div key={`${rep}-${i}`} className="shrink-0 max-w-[130px] flex justify-center items-center">
+                    <img alt={logo.alt} src={logo.src} width={130} height={40} className="h-10 w-fit object-contain" />
+                  </div>
+                )))}
+              </div>
+              {/* Desktop: static row */}
+              <div className="hidden md:flex items-center justify-center lg:justify-between gap-4 xl:gap-8">
+                {[
+                  { alt: "CBS NEWS", src: "/press-logos/cbs-news.png" },
+                  { alt: "ABC",      src: "/press-logos/abc.png" },
+                  { alt: "MSN",      src: "/press-logos/msn.png" },
+                  { alt: "Yahoo",    src: "/press-logos/yahoo.png" },
+                ].map((logo) => (
+                  <div key={logo.alt} className="max-w-[130px] flex justify-center items-center">
+                    <img alt={logo.alt} src={logo.src} width={130} height={40} className="h-10 w-fit object-contain" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <span className="text-[18px] sm:text-[22px] font-black tracking-tight text-neutral-900">
-            <span className="text-red-600">●</span> CBS NEWS
-          </span>
-          <span className="text-[18px] sm:text-[22px] font-bold lowercase tracking-tight text-neutral-900 italic">abc</span>
-          <span className="text-[18px] sm:text-[22px] font-bold tracking-tight text-neutral-900 lowercase italic">
-            <span style={{ color: "#7BC142" }}>✿</span> msn
-          </span>
-          <span className="text-[20px] sm:text-[26px] font-black tracking-tight" style={{ color: "#5F01D2" }}>
-            yahoo<span className="text-red-600">!</span>
-          </span>
         </div>
+        <style>{`@keyframes marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }`}</style>
       </section>
 
-      {/* ── Bestsellers grid ── */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+      {/* ── Bestsellers ── */}
+      <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Bestsellers</h2>
             <Link
               href="/shop"
-              className="text-[12px] sm:text-sm font-bold tracking-widest uppercase text-neutral-900 border border-neutral-900 px-5 py-2.5 hover:bg-neutral-900 hover:text-white transition-colors"
+              className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
             >
               Shop All
             </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-            {bestSellers.slice(0, 4).map((product) => {
-              const savePct = product.onSale && product.salePrice && product.regularPrice
-                ? Math.round((1 - parseFloat(product.salePrice.replace(/[^0-9.]/g, "")) / parseFloat(product.regularPrice.replace(/[^0-9.]/g, ""))) * 100)
-                : 0;
-              return (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="block bg-white rounded-md overflow-hidden no-underline text-inherit group relative"
-                >
-                  {savePct > 0 && (
-                    <span
-                      className="absolute top-3 left-3 z-10 text-white text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
-                      style={{ backgroundColor: "#538125" }}
-                    >
-                      {savePct}% Off
-                    </span>
-                  )}
-                  <div className="aspect-square overflow-hidden bg-white p-4 sm:p-6">
-                    {product.image ? (
-                      <Image
-                        src={product.image.sourceUrl}
-                        alt={product.image.altText || product.name}
-                        width={400}
-                        height={400}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-neutral-100" />
-                    )}
-                  </div>
-                  <div className="p-3 sm:p-4">
-                    <p className="text-[10px] sm:text-[11px] uppercase font-medium text-neutral-500 tracking-wider mb-1">
-                      {product.productCategories?.nodes?.[0]?.name ?? "Bags"}
-                    </p>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-amber-400 text-xs">★★★★★</span>
-                      <span className="text-[11px] sm:text-xs text-neutral-500">(15,243)</span>
-                    </div>
-                    <h3 className="text-[13px] sm:text-sm font-semibold text-neutral-900 leading-snug truncate mb-2">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-600 text-base sm:text-lg font-bold">
-                        {formatPrice(product.onSale && product.salePrice ? product.salePrice : product.price)}
-                      </span>
-                      {product.onSale && product.regularPrice && (
-                        <span className="text-neutral-400 text-xs sm:text-sm line-through">
-                          {formatPrice(product.regularPrice)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+          {/* Horizontal scroll on mobile, 4-col grid on desktop */}
+          <div className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4" style={{ scrollbarWidth: "none" }}>
+            {bestSellers.slice(0, 4).map((product, i) => (
+              <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
+                <ProductCard product={product} loading={i < 4 ? "eager" : "lazy"} />
+              </div>
+            ))}
+          </div>
+          {/* Mobile-only Shop All */}
+          <div className="w-full text-center md:hidden mt-6">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
+            >
+              Shop All
+            </Link>
           </div>
         </div>
       </section>
@@ -162,28 +148,40 @@ export default async function HomePage() {
       {/* ── UGC video strip ── */}
       <UGCStrip />
 
-      {/* ── Category tiles ── */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          <div className="flex gap-3 min-w-max sm:min-w-0 sm:grid sm:grid-cols-6">
-            {CATEGORIES.map((cat) => (
-              <Link key={cat.label} href={cat.href} className="flex flex-col items-center gap-2 no-underline group w-[80px] sm:w-auto">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 rounded-full flex items-center justify-center text-2xl group-hover:bg-neutral-200 transition-colors">
-                  {cat.emoji}
-                </div>
-                <span className="text-[11px] sm:text-[12px] font-medium text-neutral-700 text-center leading-tight">{cat.label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── New In carousel ── */}
       <Carousel title="New In" viewAllHref="/shop" products={newIn} badges={{ 0: "New", 2: "New" }} />
 
+      {/* ── CTA banner — Worn Daily ── */}
+      <section
+        className="relative flex items-center justify-center text-center px-6 py-16 sm:py-24 min-h-[280px]"
+        style={{ background: "linear-gradient(rgba(0,0,0,0.52),rgba(0,0,0,0.52)),linear-gradient(135deg,#1a1a1a,#3a3a3a)" }}
+      >
+        <div>
+          <h2 className="font-heading text-[28px] sm:text-[40px] font-bold text-white tracking-tight mb-3 leading-tight">
+            Worn Daily. Styled Your Way.
+          </h2>
+          <p className="text-white/60 text-[14px] mb-7 max-w-md mx-auto leading-relaxed">
+            Elegant enough for dinner, effortless enough for errands.
+          </p>
+          <Link
+            href="/shop"
+            className="inline-block border border-white/80 text-white px-10 py-3.5 text-[11px] tracking-[0.18em] font-bold uppercase hover:bg-white hover:text-neutral-900 transition-colors"
+          >
+            Find Your Everyday Bag
+          </Link>
+        </div>
+      </section>
+
       {/* ── Feature banner 1 — Spring Edit ── */}
       <section className="flex flex-col md:flex-row min-h-[400px] md:min-h-[480px]">
-        <div className="flex-1 min-h-[240px] md:min-h-0" style={{ background: "linear-gradient(135deg,#2d5a6b,#1a3a45)" }} />
+        <div className="flex-1 min-h-[240px] md:min-h-0 relative overflow-hidden">
+          <Image
+            src="https://noirblanc.store/wp-content/uploads/2026/06/hf_20260419_074456_af48ec76-8c8e-4fc9-abf1-f77665f45fd1-1-scaled.png"
+            alt="Spring Edit"
+            fill
+            className="object-cover"
+          />
+        </div>
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
           <p className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400 mb-3">Spring Edit</p>
           <h2 className="font-heading text-[28px] sm:text-[36px] font-bold text-neutral-900 leading-[1.15] mb-4">
@@ -205,7 +203,14 @@ export default async function HomePage() {
 
       {/* ── Feature banner 2 — What Makes It Your Go-To Bag ── */}
       <section className="flex flex-col md:flex-row-reverse min-h-[400px] md:min-h-[480px]">
-        <div className="flex-1 min-h-[240px] md:min-h-0" style={{ background: "linear-gradient(135deg,#c9a96e,#8b6f5e)" }} />
+        <div className="flex-1 min-h-[240px] md:min-h-0 relative overflow-hidden">
+          <Image
+            src="https://noirblanc.store/wp-content/uploads/2026/06/177688851369406459_1.png"
+            alt="What Makes It Your Go-To Bag"
+            fill
+            className="object-cover"
+          />
+        </div>
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
           <p className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400 mb-3">Thoughtfully designed</p>
           <h2 className="font-heading text-[28px] sm:text-[36px] font-bold text-neutral-900 leading-[1.15] mb-4">
@@ -223,60 +228,39 @@ export default async function HomePage() {
       </section>
 
       {/* ── Shop the Collection grid ── */}
-      <section className="py-10 md:py-14 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[18px] sm:text-[22px] font-heading font-semibold text-neutral-900 tracking-tight">
-            Shop the Collection
-          </h2>
-          <Link href="/shop" className="text-[12px] font-medium text-neutral-600 underline underline-offset-2 hover:text-neutral-900">
-            View all
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-          {collection.map((product, i) => (
-            <ProductCard key={product.id} product={product} badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined} />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Trust row ── */}
-      <section className="bg-neutral-50 border-t border-neutral-100 py-8 px-4 sm:px-8">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          {[
-            { icon: "🚚", title: "Free Shipping",  sub: "On orders over $75" },
-            { icon: "↩️",  title: "Free Returns",   sub: "365-day returns" },
-            { icon: "💳", title: "Secure Payment", sub: "256-bit SSL" },
-            { icon: "🌿", title: "Sustainable",    sub: "Ethical production" },
-          ].map(({ icon, title, sub }) => (
-            <div key={title}>
-              <div className="text-2xl mb-2">{icon}</div>
-              <p className="text-[13px] font-semibold text-neutral-900">{title}</p>
-              <p className="text-[12px] text-neutral-500">{sub}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA banner ── */}
-      <section
-        className="relative flex items-center justify-center text-center px-6 py-16 sm:py-24 min-h-[280px]"
-        style={{ background: "linear-gradient(rgba(0,0,0,0.52),rgba(0,0,0,0.52)),linear-gradient(135deg,#1a1a1a,#3a3a3a)" }}
-      >
-        <div>
-          <h2 className="font-heading text-[28px] sm:text-[40px] font-bold text-white tracking-tight mb-3 leading-tight">
-            Worn Daily. Styled Your Way.
-          </h2>
-          <p className="text-white/60 text-[14px] mb-7 max-w-md mx-auto leading-relaxed">
-            Elegant enough for dinner, effortless enough for errands.
-          </p>
-          <Link
-            href="/shop"
-            className="inline-block border border-white/80 text-white px-10 py-3.5 text-[11px] tracking-[0.18em] font-bold uppercase hover:bg-white hover:text-neutral-900 transition-colors"
+      <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Shop the Collection</h2>
+            <Link
+              href="/shop"
+              className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
+            >
+              Shop All
+            </Link>
+          </div>
+          <div
+            className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4"
+            style={{ scrollbarWidth: "none" }}
           >
-            Find Your Everyday Bag
-          </Link>
+            {collection.map((product, i) => (
+              <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
+                <ProductCard product={product} badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined} />
+              </div>
+            ))}
+          </div>
+          <div className="w-full text-center md:hidden mt-6">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
+            >
+              Shop All
+            </Link>
+          </div>
         </div>
       </section>
+
+
 
     </div>
   );

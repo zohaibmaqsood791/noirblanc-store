@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { graphqlClient } from "@/lib/graphql/client";
-import { GET_PRODUCT_BY_SLUG, GET_PRODUCTS } from "@/lib/graphql/queries";
+import { GET_PRODUCT_BY_SLUG, GET_PRODUCTS, GET_PRODUCTS_BY_SEARCH } from "@/lib/graphql/queries";
 import ProductDetail from "@/components/product/ProductDetail";
+import { fetchReviews } from "@/lib/reviews";
 import type { Product } from "@/types";
 import type { Metadata } from "next";
 
@@ -33,6 +34,25 @@ async function getRelatedProducts(excludeSlug: string): Promise<Product[]> {
   }
 }
 
+/**
+ * Fetch color variant siblings by searching for the first two words of the
+ * product name. E.g. "Luma Crossbody Bag Ivory" → search "Luma Crossbody"
+ * Returns all matching products (inc. current product so swatch is complete).
+ */
+async function getColorVariants(productName: string): Promise<Product[]> {
+  const words = productName.trim().split(/\s+/);
+  const searchTerm = words.slice(0, Math.min(2, words.length)).join(" ");
+  try {
+    const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
+      GET_PRODUCTS_BY_SEARCH,
+      { search: searchTerm, first: 12 }
+    );
+    return data.products.nodes;
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
@@ -48,10 +68,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const [product, relatedProducts] = await Promise.all([
-    getProduct(slug),
-    getRelatedProducts(slug),
-  ]);
+  const product = await getProduct(slug);
   if (!product) notFound();
-  return <ProductDetail product={product} relatedProducts={relatedProducts} />;
+
+  const [relatedProducts, colorVariants, reviews] = await Promise.all([
+    getRelatedProducts(slug),
+    getColorVariants(product.name),
+    fetchReviews(),
+  ]);
+
+  return (
+    <ProductDetail
+      product={product}
+      relatedProducts={relatedProducts}
+      colorVariants={colorVariants}
+      reviews={reviews}
+    />
+  );
 }
