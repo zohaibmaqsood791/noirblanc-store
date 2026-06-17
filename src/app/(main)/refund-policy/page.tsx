@@ -1,93 +1,44 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Return Policy",
+};
 
 export default function RefundPolicyPage() {
   return (
     <main className="min-h-screen bg-white">
-      <section className="bg-[#FAFAFA] border-b border-neutral-100 py-16">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight mb-4">Refund Policy</h1>
-          <p className="text-neutral-500">Last updated: June 2025</p>
+      <div className="max-w-3xl mx-auto px-4 py-16 sm:py-20">
+        <h1 className="font-heading text-3xl sm:text-4xl font-bold text-neutral-900 mb-10">Return Policy</h1>
+
+        <div className="prose prose-neutral max-w-none space-y-8 text-neutral-700 leading-relaxed">
+
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Returns</h2>
+            <p>We offer fast and easy returns on all orders within 30 days of order placement. If 30 days have passed since your purchase, we cannot offer a refund or exchange.</p>
+            <p className="mt-2">To begin the return process, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p className="mt-2">To be eligible for a return, your item must be unused, unaltered, and in the same condition you received it, in its original packaging.</p>
+            <p className="mt-2">Once your return is received and inspected, we will email you to notify you of receipt and whether your refund has been approved or denied. Please allow 10 days for the refund to be processed once approved.</p>
+            <p className="mt-2">This policy applies to transactions in USD. The amount will automatically be converted into the customer's local currency as needed. No restocking charges apply to returns. The cost of the return label is the customer's responsibility.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Exchanges</h2>
+            <p>We only replace items if they are defective or damaged. If you need to exchange an item, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a> for instructions.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Return Shipping</h2>
+            <p>Customers are responsible for paying return shipping costs. Shipping costs are non-refundable. If you receive a refund, the cost of return shipping will be deducted from your refund.</p>
+            <p className="mt-2">If you are shipping an item over $75, we recommend using a trackable shipping service or purchasing shipping insurance. We cannot guarantee that we will receive your returned item.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Contact</h2>
+            <p>Questions about returns? Email us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+          </section>
+
         </div>
-      </section>
-
-      <section className="max-w-3xl mx-auto px-4 py-16">
-        <div className="prose prose-neutral max-w-none text-sm leading-relaxed space-y-8">
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Overview</h2>
-            <p className="text-neutral-600">
-              We want you to be completely satisfied with your purchase. If you are not happy with your order, we will work with you to make it right. Please read our refund policy carefully before making a purchase.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Returns & Refunds</h2>
-            <p className="text-neutral-600 mb-3">
-              We accept returns within <strong>30 days</strong> of the delivery date. To be eligible for a return, items must be:
-            </p>
-            <ul className="list-disc list-inside space-y-1.5 text-neutral-600">
-              <li>In their original, unworn condition</li>
-              <li>With all original tags attached</li>
-              <li>In the original packaging</li>
-              <li>Not marked as final sale</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">How to Initiate a Return</h2>
-            <p className="text-neutral-600 mb-3">To start a return, please contact us at <a href="mailto:hello@noirblanc.store" className="text-black underline">hello@noirblanc.store</a> with:</p>
-            <ol className="list-decimal list-inside space-y-1.5 text-neutral-600">
-              <li>Your order number</li>
-              <li>The item(s) you wish to return</li>
-              <li>The reason for the return</li>
-            </ol>
-            <p className="text-neutral-600 mt-3">
-              We will send you a prepaid return shipping label within 1–2 business days.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Refund Processing</h2>
-            <p className="text-neutral-600">
-              Once we receive your return and inspect the item(s), we will process your refund within <strong>3–5 business days</strong>. Refunds are credited to the original payment method. Please allow your bank or credit card company an additional 3–5 business days to post the credit to your account.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Non-Refundable Items</h2>
-            <p className="text-neutral-600 mb-3">The following items are not eligible for a refund:</p>
-            <ul className="list-disc list-inside space-y-1.5 text-neutral-600">
-              <li>Final sale items</li>
-              <li>Items that have been worn, damaged, or altered</li>
-              <li>Items returned after 30 days of delivery</li>
-              <li>Shipping and handling charges (unless the error was ours)</li>
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Defective or Incorrect Items</h2>
-            <p className="text-neutral-600">
-              If you received a defective item or the wrong product, please contact us within <strong>7 days</strong> of delivery. We will provide a full refund or replacement at no cost to you, including return shipping.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Exchanges</h2>
-            <p className="text-neutral-600">
-              We offer exchanges for a different size or color, subject to availability. To exchange an item, follow the same process as a return and specify the item you would like instead.
-            </p>
-          </div>
-
-          <div>
-            <h2 className="font-heading text-xl font-bold mb-3">Contact Us</h2>
-            <p className="text-neutral-600">
-              For any questions about our refund policy, please contact us at{" "}
-              <a href="mailto:hello@noirblanc.store" className="text-black underline">hello@noirblanc.store</a> or visit our{" "}
-              <Link href="/contact" className="text-black underline">Contact page</Link>.
-            </p>
-          </div>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }

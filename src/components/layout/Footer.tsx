@@ -121,8 +121,8 @@ export default function Footer() {
               <p className="text-neutral-400 text-sm mb-1">
                 <strong className="text-white">Monday – Friday</strong>, 9 AM – 5 PM EST
               </p>
-              <a href="mailto:info@noirblancnyc.com" className="text-neutral-300 text-sm hover:text-white transition-colors">
-                ✉ info@noirblancnyc.com
+              <a href="mailto:hello@noirblancnyc.com" className="text-neutral-300 text-sm hover:text-white transition-colors">
+                ✉ hello@noirblancnyc.com
               </a>
 
               {/* Socials */}

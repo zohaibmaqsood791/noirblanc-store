@@ -238,8 +238,8 @@ export default function OrderConfirmation({
             <div className="bg-white rounded-xl p-5 text-center">
               <p className="text-xs text-neutral-500">
                 Questions? Email us at{" "}
-                <a href="mailto:info@noirblancnyc.com" className="underline text-neutral-700">
-                  info@noirblancnyc.com
+                <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-700">
+                  hello@noirblancnyc.com
                 </a>
               </p>
             </div>

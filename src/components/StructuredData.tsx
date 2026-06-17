@@ -13,7 +13,7 @@ export default function StructuredData() {
         },
         description:
           "Discover Noir & Blanc luxury handbags collection. Timeless, meticulously crafted handbags including crossbody bags, totes, backpacks, and wallets.",
-        email: "info@noirblancnyc.com",
+        email: "hello@noirblancnyc.com",
         sameAs: [
           "https://www.instagram.com/noirblancnyc/",
           "https://www.tiktok.com/@noirandblancnyc",

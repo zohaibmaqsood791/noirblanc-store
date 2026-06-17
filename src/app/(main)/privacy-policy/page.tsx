@@ -1,127 +1,78 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+};
 
 export default function PrivacyPolicyPage() {
   return (
     <main className="min-h-screen bg-white">
-      <section className="bg-[#FAFAFA] border-b border-neutral-100 py-16">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight mb-4">Privacy Policy</h1>
-          <p className="text-neutral-500">Last updated: June 2025</p>
-        </div>
-      </section>
+      <div className="max-w-3xl mx-auto px-4 py-16 sm:py-20">
+        <h1 className="font-heading text-3xl sm:text-4xl font-bold text-neutral-900 mb-10">Privacy Policy</h1>
 
-      <section className="max-w-3xl mx-auto px-4 py-16 space-y-10 text-sm leading-relaxed text-neutral-600">
+        <div className="prose prose-neutral max-w-none space-y-8 text-neutral-700 leading-relaxed">
 
-        <div>
-          <p>
-            Noir & Blanc (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) operates noirblanc.store. This Privacy Policy describes how we collect, use, and protect your personal information when you visit or make a purchase from our website.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 1 – What Do We Do With Your Information?</h2>
+            <p>When you purchase something from our store, as part of the buying and selling process, we collect the personal information you give us such as your name, address and email address.</p>
+            <p className="mt-2">When you browse our store, we also automatically receive your computer's internet protocol (IP) address in order to provide us with information that helps us learn about your browser and operating system.</p>
+            <p className="mt-2">With your permission, we may send you emails about our store, new products and other updates.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">1. Information We Collect</h2>
-          <p className="mb-3">When you use our website or place an order, we may collect the following information:</p>
-          <ul className="list-disc list-inside space-y-1.5">
-            <li><strong>Personal Identification:</strong> name, email address, phone number</li>
-            <li><strong>Shipping Information:</strong> billing and delivery address</li>
-            <li><strong>Payment Information:</strong> processed securely by Square; we do not store card numbers</li>
-            <li><strong>Usage Data:</strong> browser type, pages visited, time spent on site, referring URLs</li>
-            <li><strong>Communications:</strong> messages you send us via email or contact forms</li>
-          </ul>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 2 – Consent</h2>
+            <h3 className="font-semibold text-neutral-800 mb-2">How do you get my consent?</h3>
+            <p>When you provide us with personal information to complete a transaction, verify your credit card, place an order, arrange for a delivery or return a purchase, we imply that you consent to our collecting it and using it for that specific reason only.</p>
+            <p className="mt-2">If we ask for your personal information for a secondary reason, like marketing, we will either ask you directly for your expressed consent, or provide you with an opportunity to say no.</p>
+            <h3 className="font-semibold text-neutral-800 mt-4 mb-2">How do I withdraw my consent?</h3>
+            <p>If after you opt-in, you change your mind, you may withdraw your consent for us to contact you, for the continued collection, use or disclosure of your information, at any time, by contacting us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">2. How We Use Your Information</h2>
-          <p className="mb-3">We use collected information to:</p>
-          <ul className="list-disc list-inside space-y-1.5">
-            <li>Process and fulfill your orders</li>
-            <li>Send order confirmations and shipping updates</li>
-            <li>Respond to customer service inquiries</li>
-            <li>Send promotional emails (you can unsubscribe at any time)</li>
-            <li>Improve our website and user experience</li>
-            <li>Prevent fraud and maintain security</li>
-            <li>Comply with legal obligations</li>
-          </ul>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 3 – Disclosure</h2>
+            <p>We may disclose your personal information if we are required by law to do so or if you violate our Terms of Service.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">3. Sharing Your Information</h2>
-          <p className="mb-3">We do not sell your personal data. We may share your information with:</p>
-          <ul className="list-disc list-inside space-y-1.5">
-            <li><strong>Payment processors</strong> (Square) to process transactions</li>
-            <li><strong>Shipping carriers</strong> (UPS, USPS, FedEx) to deliver your orders</li>
-            <li><strong>Email service providers</strong> to send transactional and marketing emails</li>
-            <li><strong>Analytics providers</strong> to help us understand how our site is used</li>
-            <li><strong>Law enforcement</strong> when required by law</li>
-          </ul>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 4 – Payment</h2>
+            <p>We use Square to process payments. Your purchase transaction data is stored only as long as is necessary to complete your purchase transaction. After that is complete, your purchase transaction information is deleted. Credit card information is encrypted using secure socket layer technology (SSL) and stored with AES-256 encryption. Although no method of transmission over the Internet or electronic storage is 100% secure, we follow all PCI-DSS requirements and implement additional generally accepted industry standards.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">4. Cookies</h2>
-          <p>
-            We use cookies and similar tracking technologies to enhance your browsing experience, remember your preferences, and analyze website traffic. You can control cookie settings through your browser. Disabling cookies may affect some features of our website.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 5 – Third-Party Services</h2>
+            <p>In general, the third-party providers used by us will only collect, use and disclose your information to the extent necessary to allow them to perform the services they provide to us.</p>
+            <p className="mt-2">However, certain third-party service providers, such as payment gateways and other payment transaction processors, have their own privacy policies in respect to the information we are required to provide to them for your purchase-related transactions.</p>
+            <p className="mt-2">We also use Google Analytics to track site visitors and page views.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">5. Data Security</h2>
-          <p>
-            We implement industry-standard security measures to protect your personal information from unauthorized access, disclosure, alteration, or destruction. All payment processing is handled by Square, a PCI-DSS Level 1 certified payment processor. However, no method of transmission over the Internet is 100% secure.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 6 – Security</h2>
+            <p>To protect your personal information, we take reasonable precautions and follow industry best practices to make sure it is not inappropriately lost, misused, accessed, disclosed, altered or destroyed.</p>
+            <p className="mt-2">If you provide us with your credit card information, the information is encrypted using secure socket layer technology (SSL) and stored with AES-256 encryption. We follow all PCI-DSS requirements.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">6. Data Retention</h2>
-          <p>
-            We retain your personal information for as long as necessary to fulfill the purposes outlined in this policy, unless a longer retention period is required by law. Order records are kept for a minimum of 7 years for accounting purposes.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 7 – Cookies</h2>
+            <p>We use cookies to maintain your shopping session and track order progress. Necessary cookies enable core site functionality. Additional cookies may be used to enhance your experience and for analytics purposes.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">7. Your Rights</h2>
-          <p className="mb-3">Depending on your location, you may have the right to:</p>
-          <ul className="list-disc list-inside space-y-1.5">
-            <li>Access the personal data we hold about you</li>
-            <li>Request correction of inaccurate data</li>
-            <li>Request deletion of your personal data</li>
-            <li>Opt out of marketing communications</li>
-            <li>Data portability</li>
-          </ul>
-          <p className="mt-3">
-            To exercise these rights, contact us at <a href="mailto:hello@noirblanc.store" className="text-black underline">hello@noirblanc.store</a>.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 8 – Age of Consent</h2>
+            <p>By using this site, you represent that you are at least the age of majority in your state or province of residence.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">8. Third-Party Links</h2>
-          <p>
-            Our website may contain links to third-party sites. We are not responsible for the privacy practices of those sites and encourage you to review their privacy policies.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 9 – Changes to This Privacy Policy</h2>
+            <p>We reserve the right to modify this privacy policy at any time, so please review it frequently. Changes and clarifications will take effect immediately upon their posting on the website. If we make material changes to this policy, we will notify you here that it has been updated.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">9. Children&apos;s Privacy</h2>
-          <p>
-            Our website is not directed to children under 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us immediately.
-          </p>
-        </div>
+          <section>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">Questions & Contact Information</h2>
+            <p>If you would like to access, correct, amend or delete any personal information we have about you, register a complaint, or simply want more information, contact our Privacy Compliance Officer at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+          </section>
 
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">10. Changes to This Policy</h2>
-          <p>
-            We may update this Privacy Policy from time to time. We will notify you of material changes by updating the &quot;Last updated&quot; date at the top of this page. Your continued use of our website after changes constitutes acceptance of the updated policy.
-          </p>
         </div>
-
-        <div>
-          <h2 className="font-heading text-xl font-bold text-black mb-3">11. Contact Us</h2>
-          <p>
-            If you have any questions about this Privacy Policy, please contact us at{" "}
-            <a href="mailto:hello@noirblanc.store" className="text-black underline">hello@noirblanc.store</a> or visit our{" "}
-            <Link href="/contact" className="text-black underline">Contact page</Link>.
-          </p>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }
