@@ -64,7 +64,7 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
         muted
         playsInline
         preload="none"
-        crossOrigin="anonymous"
+
         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
         style={{ opacity: playing ? 1 : 0 }}
         onCanPlay={() => { videoRef.current?.play().then(() => setPlaying(true)).catch(() => {}); }}
