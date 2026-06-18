@@ -771,71 +771,60 @@ function UGCModal({ items, startIndex, onClose }: { items: typeof UGC_ITEMS; sta
   );
 }
 
+function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const tryPlay = () => { video.load(); video.play().then(() => setPlaying(true)).catch(() => {}); };
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { tryPlay(); } else { video.pause(); setPlaying(false); } },
+      { threshold: 0.2 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <button type="button" onClick={onClick} className="relative w-full cursor-pointer overflow-hidden rounded-2xl bg-neutral-200 block" style={{ aspectRatio: "9/16" }}>
+      <img src={item.poster} alt={item.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      <video
+        ref={videoRef}
+        src={item.src}
+        loop muted playsInline preload="none"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+        style={{ opacity: playing ? 1 : 0 }}
+      />
+      <div className="absolute bottom-0 left-0 right-0 px-3 pt-10 pb-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none">
+        <p className="text-white font-semibold text-[13px] leading-snug line-clamp-2 text-left">{item.label}</p>
+      </div>
+      <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${playing ? "opacity-0" : "opacity-100"}`}>
+        <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-neutral-900 ml-0.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function UGCStrip() {
   const [open, setOpen] = useState(false);
   const [startIdx, setStartIdx] = useState(0);
   return (
     <section className="py-10 sm:py-12" style={{ backgroundColor: "#F8FAF8" }}>
-      {/* Heading */}
       <div className="text-center mb-6 sm:mb-8 px-4">
-        <p className="text-[12px] sm:text-[13px] text-neutral-500 tracking-wide italic">
-          Real moments from our community
-        </p>
-        <h2 className="font-heading text-[22px] sm:text-[28px] font-semibold text-neutral-900 mt-1">
-          18,347+ happy customers (and counting)
-        </h2>
+        <p className="text-[12px] sm:text-[13px] text-neutral-500 tracking-wide italic">Real moments from our community</p>
+        <h2 className="font-heading text-[22px] sm:text-[28px] font-semibold text-neutral-900 mt-1">18,347+ happy customers (and counting)</h2>
       </div>
-
-      {/* Video grid — full width 5 cols desktop / scroll mobile */}
-      <div
-        className="flex gap-2 sm:gap-3 overflow-x-auto snap-x snap-mandatory px-3 sm:px-4 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-6 xl:px-8"
-        style={{ scrollbarWidth: "none" }}
-      >
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto snap-x snap-mandatory px-3 sm:px-4 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-6 xl:px-8" style={{ scrollbarWidth: "none" }}>
         {UGC_ITEMS.map((item, i) => (
           <div key={item.id} className="flex-none w-[52vw] sm:w-[36vw] md:w-[28vw] lg:w-full snap-start">
-            <button
-              type="button"
-              onClick={() => { setStartIdx(i); setOpen(true); }}
-              className="relative w-full group cursor-pointer overflow-hidden rounded-2xl bg-neutral-200 block"
-              style={{ aspectRatio: "9/16" }}
-            >
-              {/* Poster image — always shown; video loads lazily on hover */}
-              <img
-                src={item.poster}
-                alt={item.label}
-                className="absolute inset-0 w-full h-full object-cover"
-                loading="lazy"
-              />
-              {/* Video loads only on hover via CSS + preload=none */}
-              <video
-                src={item.src}
-                loop
-                muted
-                playsInline
-                preload="none"
-                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                onMouseEnter={(e) => { const v = e.currentTarget; v.load(); v.play().catch(() => {}); }}
-                onMouseLeave={(e) => { e.currentTarget.pause(); }}
-              />
-              {/* Bottom label */}
-              <div className="absolute bottom-0 left-0 right-0 px-3 pt-10 pb-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none">
-                <p className="text-white font-semibold text-[13px] leading-snug line-clamp-2 text-left">
-                  {item.label}
-                </p>
-              </div>
-              {/* Hover play icon */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-neutral-900 ml-0.5">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                </div>
-              </div>
-            </button>
+            <UGCCard item={item} onClick={() => { setStartIdx(i); setOpen(true); }} />
           </div>
         ))}
       </div>
-
       {open && <UGCModal items={UGC_ITEMS} startIndex={startIdx} onClose={() => setOpen(false)} />}
     </section>
   );

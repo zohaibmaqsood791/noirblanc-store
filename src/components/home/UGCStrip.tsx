@@ -19,16 +19,21 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
     const video = videoRef.current;
     if (!video) return;
 
+    const tryPlay = () => {
+      video.load();
+      video.play().then(() => setPlaying(true)).catch(() => {});
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          video.play().then(() => setPlaying(true)).catch(() => {});
+          tryPlay();
         } else {
           video.pause();
           setPlaying(false);
         }
       },
-      { threshold: 0.4 }
+      { threshold: 0.2 }
     );
 
     observer.observe(video);
