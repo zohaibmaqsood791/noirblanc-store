@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GET_PRODUCTS, GET_CATEGORIES } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
@@ -40,6 +41,8 @@ export default async function CollectionPage({
   ]);
 
   const currentCategory = categories.find((c) => c.slug === slug);
+  // Unknown collection (old Shopify URL, renamed) → send to shop instead of an empty page
+  if (!currentCategory && products.length === 0) redirect("/shop");
   const pageTitle = currentCategory?.name ?? slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   return (

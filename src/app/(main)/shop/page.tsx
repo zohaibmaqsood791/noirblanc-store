@@ -33,12 +33,26 @@ async function getCategories() {
   }
 }
 
+// Display order on the shop grid: Crossbody bags → other bags → wallets → straps.
+// (Strap is checked first so "crossbody strap" sorts as a strap, not a bag.)
+function shopOrder(p: Product): number {
+  const cats = (p.productCategories?.nodes ?? []).map((c) => `${c.slug} ${c.name}`).join(" ");
+  const hay = `${cats} ${p.name}`.toLowerCase();
+  if (/strap/.test(hay)) return 3;
+  if (/wallet|purse/.test(hay)) return 2;
+  if (/cross[\s-]?body/.test(hay)) return 0;
+  return 1; // other bags (totes, backpacks, duffels, etc.)
+}
+
 export default async function ShopPage({ searchParams }: PageProps) {
   const { category } = await searchParams;
   const [products, categories] = await Promise.all([
     getProducts(category),
     getCategories(),
   ]);
+
+  // Reorder by category priority (stable — preserves WC order within each group)
+  const sortedProducts = [...products].sort((a, b) => shopOrder(a) - shopOrder(b));
 
   const currentCategory = categories.find((c) => c.slug === category);
   const pageTitle = currentCategory?.name ?? "All Products";
@@ -104,7 +118,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.map((product, i) => (
+            {sortedProducts.map((product, i) => (
               <ProductCard
                 key={product.id}
                 product={product}

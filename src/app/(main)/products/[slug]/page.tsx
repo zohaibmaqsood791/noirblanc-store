@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GET_PRODUCT_BY_SLUG, GET_PRODUCTS, GET_PRODUCTS_BY_SEARCH } from "@/lib/graphql/queries";
 import ProductDetail from "@/components/product/ProductDetail";
@@ -69,7 +69,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = await getProduct(slug);
-  if (!product) notFound();
+  // Unknown product (old Shopify URL, renamed/draft) → send to shop instead of 404
+  if (!product) redirect("/shop");
 
   const [relatedProducts, colorVariants, reviews] = await Promise.all([
     getRelatedProducts(slug),
