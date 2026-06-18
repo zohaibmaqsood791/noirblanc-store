@@ -542,10 +542,11 @@ export default function CheckoutPage() {
         // shippingcontactchanged must be SYNCHRONOUS — Square does not await async handlers.
         // Return immediately with current cart rates; update WooCommerce in the background.
         apRequest.addEventListener("shippingcontactchanged", (contact: any) => {
+          console.log("[APay] shippingcontactchanged fired, contact:", JSON.stringify(contact));
           applePayContactRef.current = contact;
 
-          // Build shipping options from current cart rates (synchronous)
           const currentRates = cart?.availableShippingMethods?.[0]?.rates ?? [];
+          console.log("[APay] currentRates from cart:", JSON.stringify(currentRates));
           const shippingOptions = currentRates.length > 0
             ? currentRates.map((r: ShippingRate) => ({ id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2) }))
             : [{ id: "free_shipping", label: "Standard Shipping", amount: "0.00" }];
@@ -562,7 +563,14 @@ export default function CheckoutPage() {
           const newTotal = Math.max(sub - disc + shipAmt, 0.01);
           applePayTotalRef.current = newTotal;
 
-          // Background: update WooCommerce with the address so refs get refined shipping data
+          const lineItems = [
+            { amount: Math.max(sub - disc, 0).toFixed(2), label: "Subtotal" },
+            { amount: shipAmt.toFixed(2), label: "Shipping" },
+          ];
+          const returnVal = { lineItems, shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          console.log("[APay] shippingcontactchanged returning:", JSON.stringify(returnVal));
+
+          // Background: update WooCommerce with the address
           const city = contact?.city ?? "";
           const state = contact?.state ?? "";
           const postcode = contact?.postalCode ?? "";
@@ -571,6 +579,7 @@ export default function CheckoutPage() {
             .then(updatedCart => {
               if (!updatedCart) return;
               const rates = updatedCart.availableShippingMethods?.[0]?.rates ?? [];
+              console.log("[APay] BG WC rates:", JSON.stringify(rates));
               if (rates.length === 0) return;
               const best = rates.reduce((a: ShippingRate, b: ShippingRate) => parseFloat(a.cost) <= parseFloat(b.cost) ? a : b);
               updateShippingMethod(best.id).catch(() => {});
@@ -580,18 +589,15 @@ export default function CheckoutPage() {
               const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
               const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
               applePayTotalRef.current = Math.max(newSub - newDisc + s, 0.01);
+              console.log("[APay] BG refs updated — method:", best.id, "total:", applePayTotalRef.current);
             })
-            .catch(() => {});
+            .catch((e) => console.error("[APay] BG WC update failed:", e));
 
-          const lineItems = [
-            { amount: Math.max(sub - disc, 0).toFixed(2), label: "Subtotal" },
-            { amount: shipAmt.toFixed(2), label: "Shipping" },
-          ];
-          return { lineItems, shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          return returnVal;
         });
 
-        // When user picks a different shipping option, update total accordingly
         apRequest.addEventListener("shippingoptionchanged", (option: any) => {
+          console.log("[APay] shippingoptionchanged fired, option:", JSON.stringify(option));
           const shipAmt = parseFloat(option?.amount ?? "0");
           applePayShipMethodRef.current = option?.id ?? applePayShipMethodRef.current;
           applePayShippingTotalRef.current = shipAmt;
@@ -603,7 +609,9 @@ export default function CheckoutPage() {
             { amount: Math.max(sub - disc, 0).toFixed(2), label: "Subtotal" },
             { amount: shipAmt.toFixed(2), label: "Shipping" },
           ];
-          return { lineItems, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          const returnVal = { lineItems, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          console.log("[APay] shippingoptionchanged returning:", JSON.stringify(returnVal));
+          return returnVal;
         });
 
         const ap = await p.applePay(apRequest) as any;
@@ -873,19 +881,19 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
+                      console.log("[APay] onClick — calling tokenize()");
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
+                        console.log("[APay] tokenize result status:", result?.status, "token:", result?.token ? "YES" : "NO", "errors:", JSON.stringify(result?.errors));
+                        console.log("[APay] result.details:", JSON.stringify(result?.details));
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        // Square returns full contact in result.details.card.billing (confirmed via debug)
                         const billing = result.details?.card?.billing ?? result.details?.billing ?? {};
                         const shipping = result.details?.shipping?.contact ?? applePayContactRef.current ?? {};
-                        const apEmail =
-                          billing.email ||
-                          shipping.email ||
-                          email;
+                        const apEmail = billing.email || shipping.email || email;
+                        console.log("[APay] email:", apEmail, "refs — total:", applePayTotalRef.current, "method:", applePayShipMethodRef.current, "shipTotal:", applePayShippingTotalRef.current);
                         const apAddress = {
                           firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
                           lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
@@ -902,6 +910,7 @@ export default function CheckoutPage() {
                           shipMethod: applePayShipMethodRef.current || undefined,
                           shipTotal: applePayShippingTotalRef.current > 0 ? applePayShippingTotalRef.current : undefined,
                         };
+                        console.log("[APay] calling chargeToken with overrides:", JSON.stringify(overrides));
                         await chargeTokenRef.current(result.token, apEmail, apAddress, overrides);
                       } catch (err) {
                         setPayError("Apple Pay failed. Please try again.");
