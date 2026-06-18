@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Menu, X, User, Search } from "lucide-react";
+import { ShoppingBag, Menu, X, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 
@@ -24,17 +24,19 @@ export default function Header() {
       <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Mobile menu button */}
-            <button
-              className="lg:hidden p-2"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {/* Mobile menu button — left */}
+            <div className="flex items-center w-10 lg:hidden">
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label="Toggle menu"
+                className="p-2"
+              >
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
 
-            {/* Logo */}
-            <Link href="/" className="flex-shrink-0">
+            {/* Logo — centered on mobile, left on desktop */}
+            <Link href="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 flex-shrink-0">
               <Image
                 src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
                 alt="Noir & Blanc"
@@ -57,11 +59,8 @@ export default function Header() {
               ))}
             </nav>
 
-            {/* Icons */}
-            <div className="flex items-center gap-3">
-              <button aria-label="Search" className="p-2 hover:opacity-60 transition-opacity">
-                <Search size={18} />
-              </button>
+            {/* Icons — right */}
+            <div className="flex items-center gap-3 ml-auto">
               <Link href="/account" aria-label="Account" className="p-2 hover:opacity-60 transition-opacity hidden sm:block">
                 <User size={18} />
               </Link>
