@@ -114,6 +114,16 @@ function colorOf(va: Variation): string {
   return attr?.value ? niceColor(attr.value) : "";
 }
 
+// Map WooCommerce category names + product name to a Google product category ID.
+function googleCategory(categoryNames: string[], name: string): string {
+  const hay = (categoryNames.join(" ") + " " + name).toLowerCase();
+  if (/strap/.test(hay)) return "5841";                         // Handbag & Wallet Accessories
+  if (/wallet|purse|card ?holder/.test(hay)) return "2745";     // Wallets & Money Clips
+  if (/backpack/.test(hay)) return "100";                       // Backpacks
+  if (/duffel|weekender|travel|gym/.test(hay)) return "102";    // Duffel Bags
+  return "6551";                                                // Handbags (default: crossbody/tote/etc.)
+}
+
 function buildItem(opts: {
   id: number | string;
   groupId?: number;
@@ -129,6 +139,7 @@ function buildItem(opts: {
   sku?: string | null;
   color?: string;
   productType?: string;
+  googleCategory?: string;
 }): string {
   const onSale = opts.sale > 0 && opts.sale < opts.regular;
   const lines = [
@@ -150,6 +161,7 @@ function buildItem(opts: {
     opts.color ? `      <g:color>${xml(opts.color)}</g:color>` : "",
     `      <g:gender>${DEFAULT_GENDER}</g:gender>`,
     `      <g:age_group>${DEFAULT_AGE_GROUP}</g:age_group>`,
+    opts.googleCategory ? `      <g:google_product_category>${opts.googleCategory}</g:google_product_category>` : "",
     opts.productType ? `      <g:product_type>${xml(opts.productType)}</g:product_type>` : "",
     "    </item>",
   ];
@@ -180,10 +192,11 @@ export async function GET() {
       stripHtml(p.shortDescription ?? "") ||
       stripHtml(p.description ?? "").slice(0, 5000) ||
       p.name;
-    const productType = (p.productCategories?.nodes ?? [])
+    const categoryNames = (p.productCategories?.nodes ?? [])
       .map((c) => c.name)
-      .filter((n) => n && n.toLowerCase() !== "uncategorized")
-      .join(" > ");
+      .filter((n) => n && n.toLowerCase() !== "uncategorized");
+    const productType = categoryNames.join(" > ");
+    const gCategory = googleCategory(categoryNames, p.name);
     const gallery = (p.galleryImages?.nodes ?? [])
       .map((g) => g.sourceUrl)
       .filter((u): u is string => !!u);
@@ -225,6 +238,7 @@ export async function GET() {
             sku: v.sku ?? p.sku,
             color,
             productType,
+            googleCategory: gCategory,
           })
         );
       }
@@ -244,6 +258,7 @@ export async function GET() {
           brand: BRAND,
           sku: p.sku,
           productType,
+          googleCategory: gCategory,
         })
       );
     }
