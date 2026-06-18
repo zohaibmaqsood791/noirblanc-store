@@ -268,6 +268,7 @@ export default function CheckoutPage() {
 
   const [email, setEmail] = useState("");
   const [emailNews, setEmailNews] = useState(false);
+  const [sccLog, setSccLog] = useState<string>("");
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
@@ -534,6 +535,7 @@ export default function CheckoutPage() {
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
           applePayContactRef.current = contact;
+          let log = `contact:${JSON.stringify({city:contact.locality,state:contact.administrativeArea,zip:contact.postalCode,country:contact.countryCode})} `;
           try {
             const updatedCart = await updateCustomerShippingAddress({
               address1: "",
@@ -543,7 +545,10 @@ export default function CheckoutPage() {
               country: (contact.countryCode ?? "US").toUpperCase(),
             });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
+            log += `rates:${rates.length} `;
             if (rates.length === 0) {
+              log += `NO_RATES`;
+              setSccLog(log);
               await event.updateWith({
                 total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
                 shippingOptions: [],
@@ -553,7 +558,6 @@ export default function CheckoutPage() {
             const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
               parseFloat(a.cost) <= parseFloat(b.cost) ? a : b
             );
-            // Actually select the shipping method in WooCommerce so the order uses it
             await updateShippingMethod(cheapest.id);
             applePayShipMethodRef.current = cheapest.id;
             const shipAmt = parseFloat(cheapest.cost);
@@ -569,12 +573,15 @@ export default function CheckoutPage() {
             }));
             const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
             if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
+            log += `shipAmt:${shipAmt} newTotal:${newTotal} opts:${JSON.stringify(shippingOptions)}`;
+            setSccLog(log);
             await event.updateWith({
               shippingOptions,
               total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" },
             });
           } catch (err) {
-            console.error("[APay] shippingcontactchanged error:", err);
+            log += `ERR:${String(err)}`;
+            setSccLog(log);
             await event.updateWith({
               total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
               shippingOptions: [],
@@ -819,6 +826,11 @@ export default function CheckoutPage() {
           <div className="w-full max-w-[580px] px-4 sm:px-6 lg:pl-10 lg:pr-10">
           <div className="py-8 lg:py-10">
 
+            {sccLog && (
+              <div style={{ background:"#000",color:"#0f0",fontSize:11,padding:8,borderRadius:6,marginBottom:8,wordBreak:"break-all" }}>
+                <b>SCC:</b> {sccLog}
+              </div>
+            )}
             {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
             <div className={hasExpressCheckout ? "mb-6" : ""}>
               {hasExpressCheckout && (
