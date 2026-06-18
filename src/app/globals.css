@@ -97,3 +97,10 @@ html {
     max-width: 120px;
   }
 }
+
+/* Temporarily hide all Klaviyo on-site forms/popups/teasers
+   (re-enable by removing this block, or unpublish the form in Klaviyo). */
+[class*="kl-teaser"],
+div[class*="klaviyo-form-"] {
+  display: none !important;
+}
