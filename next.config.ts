@@ -79,10 +79,14 @@ const csp = [
   `style-src   'self' 'unsafe-inline' ${ALL.join(" ")} https://fonts.googleapis.com`,
   // font-src needs CloudFront explicitly for Square's sqmarket font
   `font-src    'self' data: ${ALL.join(" ")} https://fonts.gstatic.com`,
-  `frame-src   'self' ${ALL.join(" ")}`,
-  // connect-src needs google.com root AND sentry.io for Square's error SDK
-  `connect-src 'self' ${ALL.join(" ")} ${OUR_ASSETS.join(" ")}`,
-  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")} ${REVIEW_IMG.join(" ")}`,
+  // frame-src must allow https: so Square's 3D Secure (3DS) challenge can load the
+  // card issuer's verification page (e.g. vcas.visa.com). Issuer/ACS domains vary by
+  // bank and can't be enumerated — a fixed list silently breaks checkout for some banks.
+  `frame-src   'self' https:`,
+  // connect-src needs google.com root AND sentry.io for Square's error SDK.
+  // https: also added for 3DS challenges that POST to the issuer's ACS server.
+  `connect-src 'self' https: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")}`,
+  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")} ${REVIEW_IMG.join(" ")} https://*.google.com.pk`,
   `media-src   'self' ${OUR_ASSETS.join(" ")}`,
   `manifest-src 'self' ${GPAY.join(" ")}`,
 ].join("; ");
