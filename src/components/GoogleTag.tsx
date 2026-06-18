@@ -4,9 +4,10 @@ import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
-const GTM_ID  = "GT-PHCH4QPC";
-const GA4_ID  = "G-LCCZT27BDH";
-const AW_ID   = "AW-17089443241";
+export const GTM_ID             = "GT-PHCH4QPC";
+export const GA4_ID             = "G-LCCZT27BDH";
+export const AW_ID              = "AW-17089443241";
+export const AW_CONVERSION_LABEL = "AW-17089443241/VI21CKPCk8kaEKnr8NQ_";
 
 // Push to dataLayer safely
 export function pushDataLayer(event: Record<string, unknown>) {

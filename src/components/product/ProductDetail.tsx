@@ -8,6 +8,7 @@ import { Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2, X } from "lucide-
 import { formatPrice } from "@/lib/utils";
 import { addToCart, fetchCart } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
+import { gtag, pushDataLayer, AW_ID } from "@/components/GoogleTag";
 import { useCartStore } from "@/store/cartStore";
 import type { Product, ProductVariation } from "@/types";
 import type { Review } from "@/lib/reviews";
@@ -1120,13 +1121,28 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
   const [activeIdx, setActiveIdx] = useState(0);
   useEffect(() => { setActiveIdx(0); }, [selectedVariation?.id]);
 
-  // Fire ViewContent whenever the displayed product/variant changes
+  // Fire ViewContent + view_item whenever the displayed product/variant changes
   useEffect(() => {
     const priceNum = parseFloat((displayPrice ?? "0").replace(/[^0-9.]/g, "")) || 0;
     pixel.viewContent({
       contentId: selectedVariation?.databaseId ?? product.databaseId,
       contentName: product.name,
       value: priceNum,
+    });
+
+    // Google Ads + GA4: view_item
+    gtag("event", "view_item", {
+      send_to: AW_ID,
+      value: priceNum,
+      currency: "USD",
+      google_business_vertical: "retail",
+      items: [{ id: String(selectedVariation?.databaseId ?? product.databaseId), google_business_vertical: "retail" }],
+    });
+    pushDataLayer({
+      event: "view_item",
+      value: priceNum,
+      currency: "USD",
+      items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: 1 }],
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.databaseId, selectedVariation?.databaseId]);
@@ -1211,6 +1227,22 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         contentId: selectedVariation?.databaseId ?? product.databaseId,
         contentName: product.name,
         value: priceNum * pairs.length,
+      });
+
+      // Google Ads + GA4: add_to_cart
+      const cartValue = priceNum * pairs.length;
+      gtag("event", "add_to_cart", {
+        send_to: AW_ID,
+        value: cartValue,
+        currency: "USD",
+        google_business_vertical: "retail",
+        items: [{ id: String(selectedVariation?.databaseId ?? product.databaseId), google_business_vertical: "retail" }],
+      });
+      pushDataLayer({
+        event: "add_to_cart",
+        value: cartValue,
+        currency: "USD",
+        items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: pairs.length }],
       });
     } catch (e) {
       console.error(e);
