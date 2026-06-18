@@ -52,14 +52,15 @@ const COUNTRY_CODES: Record<string, string> = {}; // populated dynamically
 
 /* ─── Input component ───────────────────────────────────────────────────── */
 function Field({
-  label, type = "text", value, onChange, placeholder, autoComplete,
+  id, label, type = "text", value, onChange, placeholder, autoComplete,
 }: {
-  label: string; type?: string; value: string;
+  id?: string; label: string; type?: string; value: string;
   onChange: (v: string) => void; placeholder?: string; autoComplete?: string;
 }) {
   return (
     <div className="relative">
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -532,7 +533,6 @@ export default function CheckoutPage() {
 
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
-          // Store the contact — email is available here even before tokenize resolves
           applePayContactRef.current = contact;
           try {
             const updatedCart = await updateCustomerShippingAddress({
@@ -544,7 +544,6 @@ export default function CheckoutPage() {
             });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
             if (rates.length === 0) {
-              // No rates — still respond so Apple Pay doesn't freeze
               await event.updateWith({
                 total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
                 shippingOptions: [],
@@ -554,6 +553,8 @@ export default function CheckoutPage() {
             const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
               parseFloat(a.cost) <= parseFloat(b.cost) ? a : b
             );
+            // Actually select the shipping method in WooCommerce so the order uses it
+            await updateShippingMethod(cheapest.id);
             applePayShipMethodRef.current = cheapest.id;
             const shipAmt = parseFloat(cheapest.cost);
             applePayShippingTotalRef.current = shipAmt;
@@ -574,7 +575,6 @@ export default function CheckoutPage() {
             });
           } catch (err) {
             console.error("[APay] shippingcontactchanged error:", err);
-            // Must always call updateWith or Apple Pay freezes
             await event.updateWith({
               total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
               shippingOptions: [],
@@ -847,36 +847,38 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
+                      // Square's SDK does not return the customer's email from Apple Pay —
+                      // require it from the form field so chargeToken always has a valid email.
+                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        setPayError("Please enter your email address in the Contact section below before using Apple Pay.");
+                        document.getElementById("contact-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        return;
+                      }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        // Extract contact: prefer tokenize result, fall back to shippingcontactchanged ref, then form fields
-                        const resultContact = result.details?.shippingContact ?? result.details?.contact ?? result.details?.billing ?? {};
-                        const eventContact = applePayContactRef.current ?? {};
-                        const apEmail =
-                          resultContact.emailAddress ||
-                          eventContact.emailAddress ||
-                          email;
+                        // Address comes from shippingcontactchanged ref (full address available after user confirms)
+                        const contact = applePayContactRef.current ?? {};
                         const apAddress = {
-                          firstName: resultContact.givenName ?? eventContact.givenName ?? address.firstName,
-                          lastName: resultContact.familyName ?? eventContact.familyName ?? address.lastName,
-                          address1: (resultContact.addressLines ?? [])[0] ?? (eventContact.addressLines ?? [])[0] ?? address.address1,
-                          address2: (resultContact.addressLines ?? [])[1] ?? (eventContact.addressLines ?? [])[1] ?? address.address2,
-                          city: resultContact.locality ?? eventContact.locality ?? address.city,
-                          state: resultContact.administrativeArea ?? eventContact.administrativeArea ?? address.state,
-                          postcode: resultContact.postalCode ?? eventContact.postalCode ?? address.postcode,
-                          country: ((resultContact.countryCode ?? eventContact.countryCode ?? address.country) || "US").toUpperCase(),
-                          phone: resultContact.phoneNumber ?? eventContact.phoneNumber ?? address.phone,
+                          firstName: contact.givenName ?? address.firstName,
+                          lastName: contact.familyName ?? address.lastName,
+                          address1: (contact.addressLines ?? [])[0] ?? address.address1,
+                          address2: (contact.addressLines ?? [])[1] ?? address.address2,
+                          city: contact.locality ?? address.city,
+                          state: contact.administrativeArea ?? address.state,
+                          postcode: contact.postalCode ?? address.postcode,
+                          country: ((contact.countryCode ?? address.country) || "US").toUpperCase(),
+                          phone: contact.phoneNumber ?? address.phone,
                         };
                         const overrides = {
                           total: applePayTotalRef.current > 0 ? applePayTotalRef.current : undefined,
                           shipMethod: applePayShipMethodRef.current || undefined,
                           shipTotal: applePayShippingTotalRef.current > 0 ? applePayShippingTotalRef.current : undefined,
                         };
-                        await chargeTokenRef.current(result.token, apEmail, apAddress, overrides);
+                        await chargeTokenRef.current(result.token, email, apAddress, overrides);
                       } catch (err) {
                         setPayError("Apple Pay failed. Please try again.");
                         console.error("[Apple Pay] tokenize threw:", err);
@@ -905,6 +907,7 @@ export default function CheckoutPage() {
               </div>
               <div className="space-y-3">
                 <Field
+                  id="contact-email"
                   label="Email or mobile phone number"
                   type="email"
                   value={email}
