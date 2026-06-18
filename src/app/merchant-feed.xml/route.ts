@@ -18,6 +18,7 @@ const FEED_QUERY = gql`
         name
         slug
         shortDescription
+        description
         databaseId
         image { sourceUrl }
         productCategories { nodes { name } }
@@ -32,6 +33,7 @@ type FeedProduct = {
   name: string;
   slug: string;
   shortDescription?: string | null;
+  description?: string | null;
   databaseId: number;
   image?: { sourceUrl?: string | null } | null;
   productCategories?: { nodes: { name: string }[] } | null;
@@ -81,7 +83,11 @@ export async function GET() {
       const sale = money(p.salePrice);
       const onSale = sale > 0 && sale < regular;
       const availability = (p.stockStatus ?? "IN_STOCK") === "IN_STOCK" ? "in_stock" : "out_of_stock";
-      const desc = stripHtml(p.shortDescription ?? "") || p.name;
+      // Prefer short description, fall back to full description, then the name
+      const desc =
+        stripHtml(p.shortDescription ?? "") ||
+        stripHtml(p.description ?? "").slice(0, 5000) ||
+        p.name;
       const productType = (p.productCategories?.nodes ?? [])
         .map((c) => c.name)
         .filter((n) => n && n.toLowerCase() !== "uncategorized")
