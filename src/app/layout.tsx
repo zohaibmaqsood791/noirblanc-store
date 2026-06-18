@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Raleway, Poppins } from "next/font/google";
 import "./globals.css";
 import MetaPixel from "@/components/MetaPixel";
+import GoogleTag from "@/components/GoogleTag";
 import StructuredData from "@/components/StructuredData";
 
 const raleway = Raleway({
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-body antialiased bg-white text-neutral-900">
         <StructuredData />
         <MetaPixel />
+        <GoogleTag />
         {children}
       </body>
     </html>

@@ -68,7 +68,15 @@ export default function OrderConfirmation({
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      <PurchaseEvent orderId={displayOrder ?? paymentParam ?? ""} total={totalNum} />
+      <PurchaseEvent
+        orderId={displayOrder ?? paymentParam ?? ""}
+        total={totalNum}
+        items={order?.items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: parseFloat((item.total ?? "0").replace(/[^0-9.]/g, "")) / Math.max(1, item.quantity),
+        }))}
+      />
 
       {/* Header */}
       <header className="bg-white border-b border-neutral-200">
