@@ -286,11 +286,6 @@ export default function CheckoutPage() {
   const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [debugLines, setDebugLines] = useState<string[]>([]);
-  const dbg = (msg: string) => {
-    const ts = new Date().toISOString().slice(11, 23);
-    setDebugLines(prev => [...prev.slice(-30), `${ts} ${msg}`]);
-  };
   // WooCommerce rate.cost can come back as "$0.00" — strip currency symbols before parsing
   const money = (v: string | null | undefined) => parseFloat((v ?? "0").replace(/[^0-9.]/g, "")) || 0;
   const [cardMounted, setCardMounted] = useState(false);
@@ -549,11 +544,9 @@ export default function CheckoutPage() {
         // shippingcontactchanged must be SYNCHRONOUS — Square does not await async handlers.
         // Return immediately with current cart rates; update WooCommerce in the background.
         apRequest.addEventListener("shippingcontactchanged", (contact: any) => {
-          dbg(`SCC city=${contact?.city} state=${contact?.state} zip=${contact?.postalCode}`);
           applePayContactRef.current = contact;
 
           const currentRates = cart?.availableShippingMethods?.[0]?.rates ?? [];
-          dbg(`rates=${currentRates.length} sub=${cart?.subtotal} disc=${cart?.discountTotal}`);
           const shippingOptions = currentRates.length > 0
             ? currentRates.map((r: ShippingRate) => ({ id: r.id, label: r.label, amount: money(r.cost).toFixed(2) }))
             : [{ id: "free_shipping", label: "Standard Shipping", amount: "0.00" }];
@@ -575,7 +568,6 @@ export default function CheckoutPage() {
             { amount: shipAmt.toFixed(2), label: "Shipping" },
           ];
           const returnVal = { lineItems, shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
-          dbg(`SCC return: total=${newTotal.toFixed(2)} opts=${shippingOptions.map((o: {label:string;amount:string}) => o.label+":"+o.amount).join(",")}`);
 
           const city = contact?.city ?? "";
           const state = contact?.state ?? "";
@@ -585,7 +577,6 @@ export default function CheckoutPage() {
             .then(updatedCart => {
               if (!updatedCart) return;
               const rates = updatedCart.availableShippingMethods?.[0]?.rates ?? [];
-              dbg(`BG WC rates=${rates.length}: ${rates.map((r: ShippingRate) => r.label+":"+r.cost).join(",")}`);
               if (rates.length === 0) return;
               const best = rates.reduce((a: ShippingRate, b: ShippingRate) => money(a.cost) <= money(b.cost) ? a : b);
               updateShippingMethod(best.id).catch(() => {});
@@ -595,15 +586,13 @@ export default function CheckoutPage() {
               const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
               const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
               applePayTotalRef.current = Math.max(newSub - newDisc + s, 0.01);
-              dbg(`BG done: method=${best.id} total=${applePayTotalRef.current}`);
             })
-            .catch((e) => dbg(`BG ERR: ${e}`));
+            .catch(() => {});
 
           return returnVal;
         });
 
         apRequest.addEventListener("shippingoptionchanged", (option: any) => {
-          dbg(`SOC id=${option?.id} amount=${option?.amount}`);
           const shipAmt = money(option?.amount);
           applePayShipMethodRef.current = option?.id ?? applePayShipMethodRef.current;
           applePayShippingTotalRef.current = shipAmt;
@@ -616,7 +605,6 @@ export default function CheckoutPage() {
             { amount: shipAmt.toFixed(2), label: "Shipping" },
           ];
           const returnVal = { lineItems, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
-          dbg(`SOC return: total=${newTotal.toFixed(2)}`);
           return returnVal;
         });
 
@@ -887,19 +875,18 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
-                      dbg("onClick tokenize()");
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
-                        dbg(`tokenize: status=${result?.status} token=${result?.token ? "YES" : "NO"} err=${result?.errors?.[0]?.message ?? "none"}`);
-                        dbg(`details keys: ${Object.keys(result?.details ?? {}).join(",")}`);
                         if (!result || result.status !== "OK" || !result.token) {
-                          setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
+                          // User dismissing the Apple Pay sheet returns status "Cancel" — not an error
+                          if (result?.status !== "Cancel") {
+                            setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
+                          }
                           return;
                         }
                         const billing = result.details?.card?.billing ?? result.details?.billing ?? {};
                         const shipping = result.details?.shipping?.contact ?? applePayContactRef.current ?? {};
                         const apEmail = billing.email || shipping.email || email;
-                        dbg(`email=${apEmail} total=${applePayTotalRef.current} method=${applePayShipMethodRef.current}`);
                         const apAddress = {
                           firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
                           lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
@@ -916,10 +903,13 @@ export default function CheckoutPage() {
                           shipMethod: applePayShipMethodRef.current || undefined,
                           shipTotal: applePayShippingTotalRef.current > 0 ? applePayShippingTotalRef.current : undefined,
                         };
-                        dbg(`chargeToken overrides: ${JSON.stringify(overrides)}`);
                         await chargeTokenRef.current(result.token, apEmail, apAddress, overrides);
-                      } catch (err) {
-                        setPayError("Apple Pay failed. Please try again.");
+                      } catch (err: any) {
+                        // Suppress cancel/abort errors from dismissing the sheet
+                        const msg = String(err?.message ?? err ?? "");
+                        if (!/cancel|abort/i.test(msg)) {
+                          setPayError("Apple Pay failed. Please try again.");
+                        }
                         console.error("[Apple Pay] tokenize threw:", err);
                       }
                     }}
@@ -1199,14 +1189,6 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
-
-            {/* Debug panel — remove after Apple Pay is fixed */}
-            {debugLines.length > 0 && (
-              <div style={{ background: "#000", color: "#0f0", fontFamily: "monospace", fontSize: 11, padding: 8, borderRadius: 6, marginBottom: 12, maxHeight: 220, overflowY: "auto" }}>
-                <div style={{ color: "#ff0", marginBottom: 4, fontWeight: "bold" }}>APay Debug</div>
-                {debugLines.map((l, i) => <div key={i}>{l}</div>)}
-              </div>
-            )}
 
             {/* Error */}
             {payError && (
