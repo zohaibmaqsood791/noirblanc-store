@@ -533,41 +533,51 @@ export default function CheckoutPage() {
         const apRequest = makeAPayRequest() as any;
 
         // shippingcontactchanged must be registered on the paymentRequest object
-        // Square SDK: shippingcontactchanged receives contact as direct param; return the update object
-        apRequest.addEventListener("shippingcontactchanged", async (contact: any) => {
+        // shippingcontactchanged must be SYNCHRONOUS — Square does not await async handlers.
+        // Return immediately with current cart rates; update WooCommerce in the background.
+        apRequest.addEventListener("shippingcontactchanged", (contact: any) => {
           applePayContactRef.current = contact;
+
+          // Build shipping options from current cart rates (synchronous)
+          const currentRates = cart?.availableShippingMethods?.[0]?.rates ?? [];
+          const shippingOptions = currentRates.length > 0
+            ? currentRates.map((r: ShippingRate) => ({ id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2) }))
+            : [{ id: "free_shipping", label: "Standard Shipping", amount: "0.00" }];
+
+          const cheapest = currentRates.length > 0
+            ? currentRates.reduce((a: ShippingRate, b: ShippingRate) => parseFloat(a.cost) <= parseFloat(b.cost) ? a : b)
+            : { id: "free_shipping", cost: "0.00", label: "Standard Shipping", methodId: "" };
+
+          applePayShipMethodRef.current = cheapest.id;
+          const shipAmt = parseFloat(cheapest.cost);
+          applePayShippingTotalRef.current = shipAmt;
+          const sub = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+          const disc = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+          const newTotal = Math.max(sub - disc + shipAmt, 0.01);
+          applePayTotalRef.current = newTotal;
+
+          // Background: update WooCommerce with the address so refs get refined shipping data
           const city = contact?.city ?? "";
           const state = contact?.state ?? "";
           const postcode = contact?.postalCode ?? "";
           const country = (contact?.countryCode ?? "US").toUpperCase();
-          try {
-            const updatedCart = await updateCustomerShippingAddress({ address1: "", city, state, postcode, country });
-            const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
-            if (rates.length === 0) {
-              return { shippingOptions: [], total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" } };
-            }
-            const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
-              parseFloat(a.cost) <= parseFloat(b.cost) ? a : b
-            );
-            await updateShippingMethod(cheapest.id);
-            applePayShipMethodRef.current = cheapest.id;
-            const shipAmt = parseFloat(cheapest.cost);
-            applePayShippingTotalRef.current = shipAmt;
-            const sub = parseFloat((updatedCart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
-            const disc = parseFloat((updatedCart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
-            const newTotal = Math.max(sub - disc + shipAmt, 0.01);
-            applePayTotalRef.current = newTotal;
-            const shippingOptions = rates.map((r: ShippingRate) => ({
-              id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2),
-            }));
-            const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
-            if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
-            // Return update — Square SDK uses the return value to update the Apple Pay sheet
-            return { shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
-          } catch (err) {
-            console.error("[APay] shippingcontactchanged:", err);
-            return { shippingOptions: [{ id: "pending", label: "Calculating...", amount: "0.00" }], total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" } };
-          }
+          updateCustomerShippingAddress({ address1: "", city, state, postcode, country })
+            .then(updatedCart => {
+              if (!updatedCart) return;
+              const rates = updatedCart.availableShippingMethods?.[0]?.rates ?? [];
+              if (rates.length === 0) return;
+              const best = rates.reduce((a: ShippingRate, b: ShippingRate) => parseFloat(a.cost) <= parseFloat(b.cost) ? a : b);
+              updateShippingMethod(best.id).catch(() => {});
+              applePayShipMethodRef.current = best.id;
+              const s = parseFloat(best.cost);
+              applePayShippingTotalRef.current = s;
+              const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+              const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+              applePayTotalRef.current = Math.max(newSub - newDisc + s, 0.01);
+            })
+            .catch(() => {});
+
+          return { shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
         });
 
         // When user picks a different shipping option, update total accordingly
