@@ -52,8 +52,22 @@ function xml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
+// Decode HTML entities so we don't double-escape when re-escaping for XML.
+// WooCommerce descriptions are HTML and already contain &amp;, &#8217;, etc.
+function decodeEntities(s: string): string {
+  return (s ?? "")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&"); // must be last
+}
+
 function stripHtml(s: string): string {
-  return (s ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return decodeEntities((s ?? "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
 function money(v: string | null | undefined): number {
