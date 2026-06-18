@@ -291,6 +291,8 @@ export default function CheckoutPage() {
     const ts = new Date().toISOString().slice(11, 23);
     setDebugLines(prev => [...prev.slice(-30), `${ts} ${msg}`]);
   };
+  // WooCommerce rate.cost can come back as "$0.00" — strip currency symbols before parsing
+  const money = (v: string | null | undefined) => parseFloat((v ?? "0").replace(/[^0-9.]/g, "")) || 0;
   const [cardMounted, setCardMounted] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [googlePayMounted, setGooglePayMounted] = useState(false);
@@ -553,15 +555,15 @@ export default function CheckoutPage() {
           const currentRates = cart?.availableShippingMethods?.[0]?.rates ?? [];
           dbg(`rates=${currentRates.length} sub=${cart?.subtotal} disc=${cart?.discountTotal}`);
           const shippingOptions = currentRates.length > 0
-            ? currentRates.map((r: ShippingRate) => ({ id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2) }))
+            ? currentRates.map((r: ShippingRate) => ({ id: r.id, label: r.label, amount: money(r.cost).toFixed(2) }))
             : [{ id: "free_shipping", label: "Standard Shipping", amount: "0.00" }];
 
           const cheapest = currentRates.length > 0
-            ? currentRates.reduce((a: ShippingRate, b: ShippingRate) => parseFloat(a.cost) <= parseFloat(b.cost) ? a : b)
+            ? currentRates.reduce((a: ShippingRate, b: ShippingRate) => money(a.cost) <= money(b.cost) ? a : b)
             : { id: "free_shipping", cost: "0.00", label: "Standard Shipping", methodId: "" };
 
           applePayShipMethodRef.current = cheapest.id;
-          const shipAmt = parseFloat(cheapest.cost);
+          const shipAmt = money(cheapest.cost);
           applePayShippingTotalRef.current = shipAmt;
           const sub = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
           const disc = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
@@ -585,10 +587,10 @@ export default function CheckoutPage() {
               const rates = updatedCart.availableShippingMethods?.[0]?.rates ?? [];
               dbg(`BG WC rates=${rates.length}: ${rates.map((r: ShippingRate) => r.label+":"+r.cost).join(",")}`);
               if (rates.length === 0) return;
-              const best = rates.reduce((a: ShippingRate, b: ShippingRate) => parseFloat(a.cost) <= parseFloat(b.cost) ? a : b);
+              const best = rates.reduce((a: ShippingRate, b: ShippingRate) => money(a.cost) <= money(b.cost) ? a : b);
               updateShippingMethod(best.id).catch(() => {});
               applePayShipMethodRef.current = best.id;
-              const s = parseFloat(best.cost);
+              const s = money(best.cost);
               applePayShippingTotalRef.current = s;
               const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
               const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
@@ -602,7 +604,7 @@ export default function CheckoutPage() {
 
         apRequest.addEventListener("shippingoptionchanged", (option: any) => {
           dbg(`SOC id=${option?.id} amount=${option?.amount}`);
-          const shipAmt = parseFloat(option?.amount ?? "0");
+          const shipAmt = money(option?.amount);
           applePayShipMethodRef.current = option?.id ?? applePayShipMethodRef.current;
           applePayShippingTotalRef.current = shipAmt;
           const sub = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
