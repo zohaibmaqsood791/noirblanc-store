@@ -91,6 +91,21 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async rewrites() {
+    return [
+      // Proxy all WordPress/WooCommerce API calls through Vercel
+      // Users see requests to noirblancnyc.com instead of noirblanc.store
+      {
+        source: "/api/wp/:path*",
+        destination: "https://noirblanc.store/:path*",
+      },
+      {
+        source: "/api/graphql",
+        destination: "https://noirblanc.store/graphql",
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

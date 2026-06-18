@@ -132,12 +132,14 @@ export default function OrderConfirmation({
                   <ul className="divide-y divide-neutral-100">
                     {order.items.map((item, i) => (
                       <li key={i} className="flex gap-3 px-5 py-4">
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
-                          {item.image ? (
-                            <Image src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
-                          ) : (
-                            <div className="w-full h-full bg-neutral-200" />
-                          )}
+                        <div className="relative w-14 h-14 flex-shrink-0">
+                          <div className="w-full h-full rounded-lg overflow-hidden bg-neutral-100">
+                            {item.image ? (
+                              <Image src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
+                            ) : (
+                              <div className="w-full h-full bg-neutral-200" />
+                            )}
+                          </div>
                           <span className="absolute -top-1.5 -right-1.5 bg-neutral-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                             {item.quantity}
                           </span>

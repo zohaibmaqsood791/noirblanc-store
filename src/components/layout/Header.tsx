@@ -95,6 +95,14 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              <div className="border-t border-neutral-100 pt-3 mt-1 flex flex-col gap-3">
+                <Link href="/track-order" className="text-sm font-medium text-neutral-700 tracking-wide py-1" onClick={() => setMobileOpen(false)}>
+                  Track Order
+                </Link>
+                <Link href="/account" className="text-sm font-medium text-neutral-700 tracking-wide py-1" onClick={() => setMobileOpen(false)}>
+                  My Account
+                </Link>
+              </div>
             </nav>
           </div>
         )}

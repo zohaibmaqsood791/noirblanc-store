@@ -15,7 +15,7 @@ const helpLinks = [
   { label: "Shipping & Returns", href: "/shipping-returns" },
   { label: "FAQ", href: "/faq" },
   { label: "Size Guide", href: "/size-guide" },
-  { label: "Track Order", href: "/account/orders" },
+  { label: "Track Order", href: "/track-order" },
 ];
 
 const companyLinks = [
