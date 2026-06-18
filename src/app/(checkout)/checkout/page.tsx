@@ -1111,8 +1111,6 @@ export default function CheckoutPage() {
       </div>{/* end lg:flex */}
 
     </div>
-
-    </div>
     {/* ── DEBUG PANEL — remove after debugging ── */}
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
