@@ -75,6 +75,100 @@ function Field({
   );
 }
 
+/* Address field with Google Places autocomplete (proxied via /api/places). */
+type PlaceResult = { address1: string; city: string; state: string; postcode: string; countryCode: string };
+function AddressAutocomplete({
+  label, value, onChange, onSelectPlace, autoComplete,
+}: {
+  label: string; value: string;
+  onChange: (v: string) => void;
+  onSelectPlace: (place: PlaceResult) => void;
+  autoComplete?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<{ placeId: string; main: string; secondary: string }[]>([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const sessionRef = useRef<string>("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  if (!sessionRef.current && typeof crypto !== "undefined" && crypto.randomUUID) {
+    sessionRef.current = crypto.randomUUID();
+  }
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const fetchSuggestions = (input: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (input.trim().length < 3) { setSuggestions([]); setOpen(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/places?action=autocomplete&session=${sessionRef.current}&input=${encodeURIComponent(input)}`);
+        const data = await res.json();
+        setSuggestions(data.suggestions ?? []);
+        setOpen((data.suggestions ?? []).length > 0);
+        setActive(-1);
+      } catch { setSuggestions([]); setOpen(false); }
+    }, 250);
+  };
+
+  const selectSuggestion = async (placeId: string) => {
+    setOpen(false);
+    try {
+      const res = await fetch(`/api/places?action=details&session=${sessionRef.current}&placeId=${encodeURIComponent(placeId)}`);
+      const place: PlaceResult = await res.json();
+      onSelectPlace(place);
+      // New session token for the next lookup (Google billing best practice)
+      if (typeof crypto !== "undefined" && crypto.randomUUID) sessionRef.current = crypto.randomUUID();
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="relative" ref={boxRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); fetchSuggestions(e.target.value); }}
+        onFocus={() => { if (suggestions.length) setOpen(true); }}
+        onKeyDown={(e) => {
+          if (!open) return;
+          if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, suggestions.length - 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
+          else if (e.key === "Enter" && active >= 0) { e.preventDefault(); selectSuggestion(suggestions[active].placeId); }
+          else if (e.key === "Escape") setOpen(false);
+        }}
+        placeholder={label}
+        autoComplete={autoComplete}
+        className="peer w-full border border-[#D4D4D4] rounded-[5px] px-3 pt-5 pb-2 text-[16px] lg:text-sm text-[#1a1a1a] placeholder-transparent focus:outline-none focus:border-[#1a1a1a] transition-colors bg-white"
+      />
+      <label className="absolute left-3 top-1.5 text-[10px] text-[#757575] font-medium transition-all peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[14px] peer-placeholder-shown:text-[#aaa] peer-placeholder-shown:font-light peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#757575] peer-focus:font-medium pointer-events-none">
+        {label}
+      </label>
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-[#D4D4D4] rounded-[5px] shadow-lg max-h-72 overflow-y-auto">
+          {suggestions.map((s, i) => (
+            <li
+              key={s.placeId}
+              onMouseDown={(e) => { e.preventDefault(); selectSuggestion(s.placeId); }}
+              onMouseEnter={() => setActive(i)}
+              className={`px-3 py-2.5 text-sm cursor-pointer ${i === active ? "bg-[#f3f3f3]" : "hover:bg-[#f7f7f7]"}`}
+            >
+              <span className="font-medium text-[#1a1a1a]">{s.main}</span>
+              {s.secondary && <span className="text-[#717171]">, {s.secondary}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function SelectField({
   label, value, onChange, options,
 }: {
@@ -995,7 +1089,26 @@ export default function CheckoutPage() {
                   <Field label="First name (optional)" value={address.firstName} onChange={(v) => setAddress({ ...address, firstName: v })} autoComplete="given-name" />
                   <Field label="Last name" value={address.lastName} onChange={(v) => setAddress({ ...address, lastName: v })} autoComplete="family-name" />
                 </div>
-                <Field label="Address" value={address.address1} onChange={(v) => { const a = { ...address, address1: v }; setAddress(a); handleAddressChange(a); }} autoComplete="street-address" />
+                <AddressAutocomplete
+                  label="Address"
+                  value={address.address1}
+                  autoComplete="street-address"
+                  onChange={(v) => { const a = { ...address, address1: v }; setAddress(a); handleAddressChange(a); }}
+                  onSelectPlace={(place) => {
+                    // Map ISO country code (e.g. "US") to the WooCommerce country name the select expects
+                    const wcCountry = wcCountries.find((c) => c.code === place.countryCode);
+                    const a = {
+                      ...address,
+                      address1: place.address1 || address.address1,
+                      city: place.city,
+                      state: place.state,
+                      postcode: place.postcode,
+                      country: wcCountry?.name ?? address.country,
+                    };
+                    setAddress(a);
+                    handleAddressChange(a);
+                  }}
+                />
                 <Field label="Apartment, suite, etc. (optional)" value={address.address2 ?? ""} onChange={(v) => setAddress({ ...address, address2: v })} />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="City" value={address.city} onChange={(v) => { const a = { ...address, city: v }; setAddress(a); handleAddressChange(a); }} autoComplete="address-level2" />
