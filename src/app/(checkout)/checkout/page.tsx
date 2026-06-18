@@ -268,6 +268,8 @@ export default function CheckoutPage() {
 
   const [email, setEmail] = useState("");
   const [emailNews, setEmailNews] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const dbg = (msg: string) => setDebugLogs(prev => [...prev.slice(-8), msg]);
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
@@ -533,7 +535,7 @@ export default function CheckoutPage() {
 
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
-          console.log("[APay] shippingcontactchanged contact:", JSON.stringify(contact));
+          dbg("SCC: " + JSON.stringify(contact));
           applePayContactRef.current = contact;
           try {
             const updatedCart = await updateCustomerShippingAddress({
@@ -822,6 +824,15 @@ export default function CheckoutPage() {
 
             {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
             <div className={hasExpressCheckout ? "mb-6" : ""}>
+              {debugLogs.length > 0 && (
+                <div style={{ background: "#000", color: "#0f0", fontSize: 11, padding: 8, borderRadius: 6, marginBottom: 8, maxHeight: 200, overflowY: "auto", wordBreak: "break-all" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <b>DEBUG</b>
+                    <button onClick={() => setDebugLogs([])} style={{ color: "#f00", fontWeight: "bold" }}>✕</button>
+                  </div>
+                  {debugLogs.map((l, i) => <div key={i} style={{ marginBottom: 4, borderBottom: "1px solid #333", paddingBottom: 4 }}>{l}</div>)}
+                </div>
+              )}
               {hasExpressCheckout && (
                 <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
               )}
@@ -857,7 +868,7 @@ export default function CheckoutPage() {
                       }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
-                        console.log("[APay] full result:", JSON.stringify(result));
+                        dbg("RESULT: " + JSON.stringify(result));
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
