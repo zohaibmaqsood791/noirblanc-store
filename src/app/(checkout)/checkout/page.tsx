@@ -572,7 +572,6 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         const errMsg = data.error ?? "Payment failed. Please try again.";
-        alert(`Square API error: ${errMsg} (HTTP ${res.status})`);
         setPayError(errMsg);
         setPaying(false);
         return;
@@ -605,7 +604,6 @@ export default function CheckoutPage() {
         coupons: (cart?.appliedCoupons ?? []).map((c) => c.code),
       };
       try { sessionStorage.setItem("nb_order", JSON.stringify(orderData)); } catch {}
-      alert(`Payment success! orderId=${data.orderId} orderNumber=${data.orderNumber} paymentId=${data.paymentId} squareStatus=${data.status}`);
       setCart(null);
       const successParams = new URLSearchParams();
       if (data.orderNumber) successParams.set("order", data.orderNumber);
@@ -613,7 +611,6 @@ export default function CheckoutPage() {
       successParams.set("total", totalNum.toFixed(2));
       router.push(`/checkout/success?${successParams.toString()}`);
     } catch (err) {
-      alert(`chargeToken threw: ${String(err)}`);
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
     }
@@ -774,16 +771,20 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
+                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        setPayError("Please enter a valid email address before paying with Apple Pay.");
+                        return;
+                      }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
-                        alert(`APay result: status=${result?.status} token=${result?.token ? "YES" : "NO"} err=${JSON.stringify(result?.errors)}`);
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
                         await chargeTokenRef.current(result.token);
                       } catch (err) {
-                        alert(`APay tokenize threw: ${String(err)}`);
+                        setPayError("Apple Pay failed. Please try again.");
+                        console.error("[Apple Pay] tokenize threw:", err);
                       }
                     }}
                     className="apple-pay-button"
