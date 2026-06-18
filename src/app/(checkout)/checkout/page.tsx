@@ -467,8 +467,8 @@ export default function CheckoutPage() {
         countryCode: "US",
         currencyCode: "USD",
         total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
-        requestBillingContact: true,
-        requestShippingContact: true,
+        requestBillingContact: false,
+        requestShippingContact: false,
       });
 
       // ── Google Pay ──
@@ -572,6 +572,7 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         const errMsg = data.error ?? "Payment failed. Please try again.";
+        alert(`Square API error: ${errMsg} (HTTP ${res.status})`);
         setPayError(errMsg);
         setPaying(false);
         return;
@@ -610,7 +611,8 @@ export default function CheckoutPage() {
       else successParams.set("payment", data.paymentId);
       successParams.set("total", totalNum.toFixed(2));
       router.push(`/checkout/success?${successParams.toString()}`);
-    } catch {
+    } catch (err) {
+      alert(`chargeToken threw: ${String(err)}`);
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
     }
@@ -773,26 +775,14 @@ export default function CheckoutPage() {
                       if (!ap) return;
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
-                        if (result.status !== "OK" || !result.token) {
-                          setPayError(result.errors?.[0]?.message ?? `Apple Pay failed (${result.status})`);
+                        alert(`APay result: status=${result?.status} token=${result?.token ? "YES" : "NO"} err=${JSON.stringify(result?.errors)}`);
+                        if (!result || result.status !== "OK" || !result.token) {
+                          setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        // Extract shipping/billing contact provided by Apple Pay
-                        const contact = result.details?.shippingContact ?? result.details?.contact ?? {};
-                        const apEmail = contact.email ?? email;
-                        const apAddr: typeof address = {
-                          firstName: contact.givenName   ?? address.firstName,
-                          lastName:  contact.familyName  ?? address.lastName,
-                          address1:  contact.addressLines?.[0] ?? address.address1,
-                          address2:  contact.addressLines?.[1] ?? address.address2 ?? "",
-                          city:      contact.locality           ?? address.city,
-                          state:     contact.administrativeArea ?? address.state,
-                          postcode:  contact.postalCode         ?? address.postcode,
-                          country:   contact.countryCode        ?? COUNTRY_CODES[address.country] ?? "US",
-                        };
-                        await chargeTokenRef.current(result.token, apEmail, apAddr);
+                        await chargeTokenRef.current(result.token);
                       } catch (err) {
-                        console.info("[APay] tokenize cancelled/failed:", err);
+                        alert(`APay tokenize threw: ${String(err)}`);
                       }
                     }}
                     className="apple-pay-button"
