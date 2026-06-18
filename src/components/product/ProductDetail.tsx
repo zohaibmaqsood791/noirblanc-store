@@ -1481,7 +1481,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
           {/* Lifestyle image — hidden on mobile */}
           <div className="relative rounded-2xl overflow-hidden aspect-[4/5] w-full hidden md:block">
             <img
-              src="https://noirblanc-store.vercel.app/ugc/ugc-2.png"
+              src="/ugc/ugc-2.png"
               alt="Noir & Blanc lifestyle"
               className="w-full h-full object-cover"
             />

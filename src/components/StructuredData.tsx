@@ -4,9 +4,9 @@ export default function StructuredData() {
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://noirblanc.store/#organization",
+        "@id": "https://noirblancnyc.com/#organization",
         name: "Noir & Blanc",
-        url: "https://noirblanc.store",
+        url: "https://noirblancnyc.com",
         logo: {
           "@type": "ImageObject",
           url: "https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg",
@@ -22,15 +22,15 @@ export default function StructuredData() {
       },
       {
         "@type": "WebSite",
-        "@id": "https://noirblanc.store/#website",
-        url: "https://noirblanc.store",
+        "@id": "https://noirblancnyc.com/#website",
+        url: "https://noirblancnyc.com",
         name: "Noir & Blanc",
-        publisher: { "@id": "https://noirblanc.store/#organization" },
+        publisher: { "@id": "https://noirblancnyc.com/#organization" },
         potentialAction: {
           "@type": "SearchAction",
           target: {
             "@type": "EntryPoint",
-            urlTemplate: "https://noirblanc.store/shop?q={search_term_string}",
+            urlTemplate: "https://noirblancnyc.com/shop?q={search_term_string}",
           },
           "query-input": "required name=search_term_string",
         },

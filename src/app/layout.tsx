@@ -23,7 +23,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://noirblanc.store"),
+  metadataBase: new URL("https://noirblancnyc.com"),
   title: {
     template: "%s | Noir & Blanc",
     default: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
@@ -39,13 +39,12 @@ export const metadata: Metadata = {
     title: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
     description:
       "Discover Noir & Blanc luxury handbags collection. Sign up for our newsletter to be the first to know about exclusive drops, special offers, and limited product launches. Elevate your style with our timeless, meticulously crafted handbags. Shop the latest trends at Noir & Blanc.",
-    url: "https://noirblanc.store",
+    url: "https://noirblancnyc.com",
     type: "website",
     images: [
       {
-        // Absolute URL to the Vercel app — metadataBase points at the WordPress
-        // backend (noirblanc.store), so a relative path would 404 there.
-        url: "https://noirblanc-store.vercel.app/og-image.jpg",
+        // Relative path resolves against metadataBase (noirblancnyc.com), served by Vercel
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Noir & Blanc Luxury Handbags",
@@ -57,7 +56,7 @@ export const metadata: Metadata = {
     title: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
     description:
       "Discover Noir & Blanc luxury handbags collection. Sign up for our newsletter to be the first to know about exclusive drops, special offers, and limited product launches. Elevate your style with our timeless, meticulously crafted handbags. Shop the latest trends at Noir & Blanc.",
-    images: ["https://noirblanc-store.vercel.app/og-image.jpg"],
+    images: ["/og-image.jpg"],
   },
   icons: {
     icon: "/favicon.svg",
