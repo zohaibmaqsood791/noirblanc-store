@@ -519,39 +519,41 @@ export default function CheckoutPage() {
           gpContainer.addEventListener("click", async () => {
             dbg("GPay clicked → tokenize()");
             try {
+              // Square googlePay.tokenize() returns the result directly — the
+              // ontokenization event does not fire reliably, so use the return value.
               const r: any = await gp.tokenize!();
               dbg(`tokenize() resolved: status=${r?.status} token=${r?.token ? "YES" : "NO"} err=${r?.errors?.[0]?.message ?? "none"}`);
+              if (!r || r.status !== "OK" || !r.token) {
+                if (r?.status !== "Cancel") {
+                  setPayError(r?.errors?.[0]?.message ?? `Google Pay failed (${r?.status})`);
+                }
+                return;
+              }
+              // Extract email + shipping contact from the Google Pay result
+              const details = r.details ?? {};
+              const billing = details?.card?.billing ?? details?.billing ?? {};
+              const shipping = details?.shipping?.contact ?? {};
+              const gpEmail = billing.email || shipping.email || email;
+              const gpAddress = {
+                firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
+                lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
+                address1: (billing.addressLines ?? [])[0] ?? (shipping.addressLines ?? [])[0] ?? address.address1,
+                address2: (billing.addressLines ?? [])[1] ?? address.address2,
+                city: billing.city ?? shipping.city ?? address.city,
+                state: billing.state ?? shipping.state ?? address.state,
+                postcode: billing.postalCode ?? shipping.postalCode ?? address.postcode,
+                country: ((billing.countryCode ?? shipping.countryCode ?? address.country) || "US").toUpperCase(),
+                phone: billing.phone ?? shipping.phone ?? address.phone,
+              };
+              dbg(`GPay email=${gpEmail} → chargeToken`);
+              await chargeTokenRef.current(r.token, gpEmail, gpAddress);
             } catch (err: any) {
               dbg(`tokenize() threw: ${err?.message ?? err}`);
+              const msg = String(err?.message ?? err ?? "");
+              if (!/cancel|abort/i.test(msg)) setPayError("Google Pay failed. Please try again.");
             }
           });
         }
-
-        gp.addEventListener("ontokenization", async (e) => {
-          const { status, token, errors, details } = e.detail as any;
-          dbg(`ontokenization: status=${status} token=${token ? "YES" : "NO"} err=${errors?.[0]?.message ?? "none"}`);
-          if (status !== "OK" || !token) {
-            setPayError(errors?.[0]?.message ?? `Google Pay failed (${status})`);
-            return;
-          }
-          // Extract email + shipping contact from the Google Pay result (like Apple Pay)
-          const billing = details?.card?.billing ?? details?.billing ?? {};
-          const shipping = details?.shipping?.contact ?? {};
-          const gpEmail = billing.email || shipping.email || email;
-          const gpAddress = {
-            firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
-            lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
-            address1: (billing.addressLines ?? [])[0] ?? (shipping.addressLines ?? [])[0] ?? address.address1,
-            address2: (billing.addressLines ?? [])[1] ?? address.address2,
-            city: billing.city ?? shipping.city ?? address.city,
-            state: billing.state ?? shipping.state ?? address.state,
-            postcode: billing.postalCode ?? shipping.postalCode ?? address.postcode,
-            country: ((billing.countryCode ?? shipping.countryCode ?? address.country) || "US").toUpperCase(),
-            phone: billing.phone ?? shipping.phone ?? address.phone,
-          };
-          dbg(`GPay email=${gpEmail} → chargeToken`);
-          await chargeTokenRef.current(token, gpEmail, gpAddress);
-        });
         googlePayRef.current = gp;
         setGooglePayMounted(true);
       } catch (gpErr) {
