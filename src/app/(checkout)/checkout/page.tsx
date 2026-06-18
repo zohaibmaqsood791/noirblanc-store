@@ -605,6 +605,7 @@ export default function CheckoutPage() {
         coupons: (cart?.appliedCoupons ?? []).map((c) => c.code),
       };
       try { sessionStorage.setItem("nb_order", JSON.stringify(orderData)); } catch {}
+      alert(`Payment success! orderId=${data.orderId} orderNumber=${data.orderNumber} paymentId=${data.paymentId} squareStatus=${data.status}`);
       setCart(null);
       const successParams = new URLSearchParams();
       if (data.orderNumber) successParams.set("order", data.orderNumber);
