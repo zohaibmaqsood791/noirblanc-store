@@ -86,7 +86,10 @@ const csp = [
   // connect-src needs google.com root AND sentry.io for Square's error SDK.
   // https: also added for 3DS challenges that POST to the issuer's ACS server.
   `connect-src 'self' https: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")}`,
-  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")} ${REVIEW_IMG.join(" ")} https://*.google.com.pk`,
+  // NOTE: Google Ads conversion pixels load from country-specific domains
+  // (google.com.pk, google.co.uk, google.de, …). These are harmless tracking
+  // pixels — CSP can't wildcard the TLD, so we let them be blocked. No impact on checkout.
+  `img-src     'self' data: blob: ${ALL.join(" ")} ${OUR_ASSETS.join(" ")} ${REVIEW_IMG.join(" ")}`,
   `media-src   'self' ${OUR_ASSETS.join(" ")}`,
   `manifest-src 'self' ${GPAY.join(" ")}`,
 ].join("; ");
