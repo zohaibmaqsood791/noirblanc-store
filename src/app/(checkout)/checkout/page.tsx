@@ -533,6 +533,7 @@ export default function CheckoutPage() {
 
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
+          console.log("[APay] shippingcontactchanged contact:", JSON.stringify(contact));
           applePayContactRef.current = contact;
           try {
             const updatedCart = await updateCustomerShippingAddress({
@@ -856,6 +857,7 @@ export default function CheckoutPage() {
                       }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
+                        console.log("[APay] full result:", JSON.stringify(result));
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
