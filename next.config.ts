@@ -41,6 +41,19 @@ const META = [
   "https://*.fbcdn.net",
 ];
 
+// ── Google Analytics / Ads / Tag Manager ─────────────────────────────────────
+const GTAG = [
+  "https://www.googletagmanager.com",
+  "https://*.googletagmanager.com",
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://www.googleadservices.com",
+  "https://*.googleadservices.com",
+  "https://googleads.g.doubleclick.net",
+  "https://*.doubleclick.net",
+  "https://stats.g.doubleclick.net",
+];
+
 // ── Review images (Judge.me / AliExpress CDN) ────────────────────────────────
 const REVIEW_IMG = [
   "https://*.amazonaws.com",
@@ -58,7 +71,7 @@ const OUR_ASSETS = [
   "https://*.noirblanc.store",
 ];
 
-const ALL = [...SQUARE, ...GPAY, ...APAY, ...META];
+const ALL = [...SQUARE, ...GPAY, ...APAY, ...META, ...GTAG];
 
 const csp = [
   `default-src 'self'`,
