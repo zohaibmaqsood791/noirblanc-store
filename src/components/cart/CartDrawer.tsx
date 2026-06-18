@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCartStore } from "@/store/cartStore";
 import { fetchCart, updateCartItem, removeFromCart, addToCart, fetchUpsellProducts } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
+import { gtag, pushDataLayer, AW_ID } from "@/components/GoogleTag";
 import type { UpsellProduct } from "@/lib/cart";
 import { formatPrice } from "@/lib/utils";
 import type { CartItem } from "@/types";
@@ -506,6 +507,14 @@ export default function CartDrawer() {
                           <div className="flex flex-col gap-2 w-full items-center justify-between">
                             <Link href="/checkout" onClick={() => {
                                 pixel.initiateCheckout({ value: totalNum, numItems: itemCount });
+                                // Google Ads + GA4: begin_checkout
+                                gtag("event", "begin_checkout", {
+                                  send_to: AW_ID,
+                                  value: totalNum,
+                                  currency: "USD",
+                                  google_business_vertical: "retail",
+                                });
+                                pushDataLayer({ event: "begin_checkout", value: totalNum, currency: "USD" });
                                 closeCart();
                               }}
                               className="flex justify-center items-center gap-3 w-full rounded-[8px] sm:rounded-[14px] border-0 text-white text-center font-bold text-sm sm:text-[18px] leading-7 uppercase py-3 sm:py-3 px-3 sm:px-6 min-h-[47px] transition-opacity hover:opacity-90"
