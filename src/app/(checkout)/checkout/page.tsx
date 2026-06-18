@@ -533,25 +533,32 @@ export default function CheckoutPage() {
 
         // shippingcontactchanged must be registered on the paymentRequest object
         apRequest.addEventListener("shippingcontactchanged", async (event: any) => {
-          const contact = event?.detail?.shippingContact ?? {};
-          applePayContactRef.current = contact;
-          let log = `SCC city:${contact.locality} state:${contact.administrativeArea} zip:${contact.postalCode} `;
+          // Log raw event structure to discover correct field names
+          const detailKeys = Object.keys(event?.detail ?? {});
+          const sc = event?.detail?.shippingContact ?? event?.detail ?? {};
+          const scKeys = Object.keys(sc);
+          const updateFn = event?.detail?.updateWith ?? event?.updateWith;
+          let log = `detailKeys:[${detailKeys}] scKeys:[${scKeys}] city:${sc.locality??sc.city} state:${sc.administrativeArea??sc.state} zip:${sc.postalCode??sc.zipCode} updateFn:${typeof updateFn} `;
+
+          const doUpdate = (payload: object) => {
+            if (typeof event?.detail?.updateWith === "function") return event.detail.updateWith(payload);
+            if (typeof event?.updateWith === "function") return event.updateWith(payload);
+            setSccLog(log + "NO_UPDATE_FN");
+          };
+
+          applePayContactRef.current = sc;
           try {
-            const updatedCart = await updateCustomerShippingAddress({
-              address1: "",
-              city: contact.locality ?? "",
-              state: contact.administrativeArea ?? "",
-              postcode: contact.postalCode ?? "",
-              country: (contact.countryCode ?? "US").toUpperCase(),
-            });
+            const city = sc.locality ?? sc.city ?? "";
+            const state = sc.administrativeArea ?? sc.state ?? "";
+            const postcode = sc.postalCode ?? sc.zipCode ?? "";
+            const country = (sc.countryCode ?? sc.country ?? "US").toUpperCase();
+
+            const updatedCart = await updateCustomerShippingAddress({ address1: "", city, state, postcode, country });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
             log += `rates:${rates.length} `;
             if (rates.length === 0) {
               setSccLog(log + "NO_RATES");
-              await event.updateWith({
-                total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
-                shippingOptions: [],
-              });
+              await doUpdate({ total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" }, shippingOptions: [] });
               return;
             }
             const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
@@ -566,23 +573,15 @@ export default function CheckoutPage() {
             const newTotal = Math.max(sub - disc + shipAmt, 0.01);
             applePayTotalRef.current = newTotal;
             const shippingOptions = rates.map((r: ShippingRate) => ({
-              id: r.id,
-              label: r.label,
-              amount: parseFloat(r.cost).toFixed(2),
+              id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2),
             }));
             const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
             if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
-            setSccLog(log + `ship:${shipAmt} total:${newTotal} opts:${JSON.stringify(shippingOptions)}`);
-            await event.updateWith({
-              shippingOptions,
-              total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" },
-            });
+            setSccLog(log + `ship:${shipAmt} newTotal:${newTotal}`);
+            await doUpdate({ shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } });
           } catch (err) {
             setSccLog(log + `ERR:${String(err)}`);
-            await event.updateWith({
-              total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
-              shippingOptions: [],
-            });
+            await doUpdate({ total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" }, shippingOptions: [] });
           }
         });
 
