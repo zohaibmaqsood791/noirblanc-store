@@ -1325,7 +1325,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
             <div className="flex -space-x-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
-                  <img src={`/avatars/avatar-${i}.svg`} alt="avatar" className="w-full h-full object-cover" />
+                  <img src={`/avatars/avatar-${i}.webp`} alt="avatar" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
@@ -1345,7 +1345,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
               <div className="flex -space-x-2">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
-                    <img src={`/avatars/avatar-${i}.svg`} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={`/avatars/avatar-${i}.webp`} alt="avatar" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
