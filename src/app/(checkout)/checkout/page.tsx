@@ -464,6 +464,8 @@ export default function CheckoutPage() {
   // valid email + items in the cart. This powers the abandoned-checkout flow.
   const startedCheckoutRef = useRef(false);
   const klEmailDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable signature so the effect doesn't re-run on every render (items is a fresh array each time)
+  const itemsKey = items.map((i) => `${i.product.node.databaseId}:${i.quantity}`).join(",");
   useEffect(() => {
     const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
     if (!validEmail || items.length === 0 || totalNum <= 0) return;
@@ -487,7 +489,8 @@ export default function CheckoutPage() {
       });
     }, 1000);
     return () => { if (klEmailDebounce.current) clearTimeout(klEmailDebounce.current); };
-  }, [email, items, totalNum, address.firstName, address.lastName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, itemsKey, totalNum, address.firstName, address.lastName]);
 
   // Sync shipMethod whenever cart changes (e.g. coupon applied changes chosen method)
   useEffect(() => {

@@ -9,7 +9,7 @@ export default function Klaviyo() {
   return (
     <Script
       id="klaviyo-onsite"
-      strategy="afterInteractive"
+      strategy="lazyOnload"
       src={`https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=${KLAVIYO_PUBLIC_KEY}`}
     />
   );
