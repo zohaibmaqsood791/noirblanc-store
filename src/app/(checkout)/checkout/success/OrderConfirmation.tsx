@@ -7,6 +7,7 @@ import { CheckCircle, MapPin, Package, ChevronDown, ChevronUp } from "lucide-rea
 import PurchaseEvent from "./PurchaseEvent";
 
 interface OrderItem {
+  productId?: number;
   name: string;
   quantity: number;
   total: string | null;
@@ -72,6 +73,7 @@ export default function OrderConfirmation({
         orderId={displayOrder ?? paymentParam ?? ""}
         total={totalNum}
         items={order?.items.map(item => ({
+          productId: item.productId,
           name: item.name,
           quantity: item.quantity,
           price: parseFloat((item.total ?? "0").replace(/[^0-9.]/g, "")) / Math.max(1, item.quantity),

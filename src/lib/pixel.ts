@@ -59,11 +59,15 @@ export function purchase(opts: {
   orderId: string | number;
   value: number;
   currency?: string;
+  contentIds?: (string | number)[];
+  numItems?: number;
 }) {
   fbq("track", "Purchase", {
     content_type: "product",
+    content_ids: (opts.contentIds ?? []).map(String),
     value: opts.value,
     currency: opts.currency ?? "USD",
+    num_items: opts.numItems,
     order_id: String(opts.orderId),
   });
 }
