@@ -512,17 +512,36 @@ export default function CheckoutPage() {
         const gpContainer = document.getElementById("sq-google-pay");
         if (gpContainer) {
           gpContainer.addEventListener("click", async () => {
+            console.log("[GPay] button clicked, calling tokenize()");
             try { await gp.tokenize!(); } catch (err) { console.error("[GPay] tokenize error:", err); }
           });
         }
 
         gp.addEventListener("ontokenization", async (e) => {
-          const { status, token, errors } = e.detail;
+          const { status, token, errors, details } = e.detail as any;
+          console.log("[GPay] ontokenization — status:", status, "token:", token ? "YES" : "NO", "errors:", JSON.stringify(errors));
+          console.log("[GPay] details:", JSON.stringify(details));
           if (status !== "OK" || !token) {
             setPayError(errors?.[0]?.message ?? `Google Pay failed (${status})`);
             return;
           }
-          await chargeTokenRef.current(token);
+          // Extract email + shipping contact from the Google Pay result (like Apple Pay)
+          const billing = details?.card?.billing ?? details?.billing ?? {};
+          const shipping = details?.shipping?.contact ?? {};
+          const gpEmail = billing.email || shipping.email || email;
+          const gpAddress = {
+            firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
+            lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
+            address1: (billing.addressLines ?? [])[0] ?? (shipping.addressLines ?? [])[0] ?? address.address1,
+            address2: (billing.addressLines ?? [])[1] ?? address.address2,
+            city: billing.city ?? shipping.city ?? address.city,
+            state: billing.state ?? shipping.state ?? address.state,
+            postcode: billing.postalCode ?? shipping.postalCode ?? address.postcode,
+            country: ((billing.countryCode ?? shipping.countryCode ?? address.country) || "US").toUpperCase(),
+            phone: billing.phone ?? shipping.phone ?? address.phone,
+          };
+          console.log("[GPay] email:", gpEmail, "calling chargeToken");
+          await chargeTokenRef.current(token, gpEmail, gpAddress);
         });
         googlePayRef.current = gp;
         setGooglePayMounted(true);
@@ -674,8 +693,10 @@ export default function CheckoutPage() {
         }),
       });
       const data = await res.json();
+      console.log("[chargeToken] /api/square/payment status:", res.status, "ok:", res.ok, "data:", JSON.stringify(data));
       if (!res.ok || !data.success) {
         const errMsg = data.error ?? "Payment failed. Please try again.";
+        console.error("[chargeToken] payment failed:", errMsg);
         setPayError(errMsg);
         setPaying(false);
         return;
@@ -715,6 +736,7 @@ export default function CheckoutPage() {
       successParams.set("total", totalNum.toFixed(2));
       router.push(`/checkout/success?${successParams.toString()}`);
     } catch (err) {
+      console.error("[chargeToken] threw:", err);
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
     }
