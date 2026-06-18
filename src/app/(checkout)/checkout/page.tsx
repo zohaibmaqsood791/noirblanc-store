@@ -580,7 +580,7 @@ export default function CheckoutPage() {
         items: items.map((item) => ({
           name: item.product.node.name,
           quantity: item.quantity,
-          total: item.subtotal,
+          total: (parseFloat((item.product.node.price ?? "0").replace(/[^0-9.]/g, "")) * item.quantity).toFixed(2),
           image: item.product.node.image?.sourceUrl ?? null,
           variation: item.variation?.node.attributes.nodes.map((a) => `${a.value}`).join(" / ") ?? null,
         })),
