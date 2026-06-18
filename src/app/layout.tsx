@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { Raleway, Poppins } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import MetaPixel from "@/components/MetaPixel";
 import GoogleTag from "@/components/GoogleTag";
 import StructuredData from "@/components/StructuredData";
+
+const GA4_ID = "G-LCCZT27BDH";
+const AW_ID  = "AW-17089443241";
 
 const raleway = Raleway({
   subsets: ["latin"],
@@ -62,6 +66,25 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
+      <head>
+        {/* Google tag — init must be in <head> before gtag.js loads */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA4_ID}', { send_page_view: false });
+gtag('config', '${AW_ID}');
+            `.trim(),
+          }}
+        />
+        <Script
+          id="gtag-lib"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
+          strategy="afterInteractive"
+        />
+      </head>
       <body className="font-body antialiased bg-white text-neutral-900">
         <StructuredData />
         <MetaPixel />

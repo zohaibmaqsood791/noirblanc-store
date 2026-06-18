@@ -2,7 +2,6 @@
 
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import Script from "next/script";
 
 export const GA4_ID              = "G-LCCZT27BDH";
 export const AW_ID               = "AW-17089443241";
@@ -14,7 +13,7 @@ export function gtag(...args: unknown[]) {
   (window as any).gtag?.(...args);
 }
 
-// Push arbitrary event to dataLayer
+// Push arbitrary object to dataLayer
 export function pushDataLayer(event: Record<string, unknown>) {
   if (typeof window === "undefined") return;
   (window as any).dataLayer = (window as any).dataLayer || [];
@@ -28,7 +27,7 @@ function PageViewTracker() {
   useEffect(() => {
     gtag("event", "page_view", {
       page_location: window.location.href,
-      page_path:     pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+      page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ""),
     });
   }, [pathname, searchParams]);
 
@@ -37,32 +36,8 @@ function PageViewTracker() {
 
 export default function GoogleTag() {
   return (
-    <>
-      {/* Load gtag.js for GA4 */}
-      <Script
-        id="gtag-lib"
-        strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
-      />
-
-      {/* Initialize GA4 + Google Ads */}
-      <Script
-        id="gtag-init"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GA4_ID}', { send_page_view: false });
-gtag('config', '${AW_ID}');
-          `.trim(),
-        }}
-      />
-
-      <Suspense fallback={null}>
-        <PageViewTracker />
-      </Suspense>
-    </>
+    <Suspense fallback={null}>
+      <PageViewTracker />
+    </Suspense>
   );
 }
