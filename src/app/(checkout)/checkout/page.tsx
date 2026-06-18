@@ -648,7 +648,7 @@ export default function CheckoutPage() {
   const hasExpressCheckout = googlePayMounted || applePayMounted;
 
   return (
-    <div className="min-h-screen bg-white checkout-font" style={{ fontFamily: '"Poppins", sans-serif' }}>
+    <><div className="min-h-screen bg-white checkout-font" style={{ fontFamily: '"Poppins", sans-serif' }}>
 
       {/* ── Header ── */}
       <header className="border-b border-[#E0E0E0] bg-white">
@@ -1112,18 +1112,21 @@ export default function CheckoutPage() {
 
     </div>
 
+    </div>
     {/* ── DEBUG PANEL — remove after debugging ── */}
-    {debugLog.length > 0 && (
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.85)", color: "#0f0", fontFamily: "monospace",
-        fontSize: 11, padding: "8px", maxHeight: "40vh", overflowY: "auto",
-      }}>
-        <div style={{ color: "#ff0", fontWeight: "bold", marginBottom: 4 }}>
-          DEBUG | total={totalNum.toFixed(2)} | sdk={sdkReady?1:0} | pReady={paymentsReady?1:0} | gp={googlePayMounted?1:0} | ap={applePayMounted?1:0}
-        </div>
-        {debugLog.map((l, i) => <div key={i}>{l}</div>)}
+    <div style={{
+      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
+      background: "rgba(0,0,0,0.88)", color: "#0f0", fontFamily: "monospace",
+      fontSize: 11, padding: "8px", maxHeight: "45vh", overflowY: "auto",
+    }}>
+      <div style={{ color: "#ff0", fontWeight: "bold", marginBottom: 4 }}>
+        DEBUG | total={totalNum.toFixed(2)} | sdk={sdkReady?1:0} | pReady={paymentsReady?1:0} | gp={googlePayMounted?1:0} | ap={applePayMounted?1:0}
       </div>
-    )}
+      {debugLog.length === 0
+        ? <div style={{color:"#aaa"}}>waiting for events…</div>
+        : debugLog.map((l, i) => <div key={i}>{l}</div>)
+      }
+    </div>
+    </>
   );
 }
