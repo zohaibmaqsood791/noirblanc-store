@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
+import { klIdentify, klTrack } from "@/lib/klaviyo";
 import type { Address, ShippingRate } from "@/types";
 
 /* ─── Square SDK types ─────────────────────────────────────────────────── */
@@ -458,6 +459,35 @@ export default function CheckoutPage() {
   // without triggering a full remount of the card form on every price change
   const totalNumRef = useRef(totalNum);
   useEffect(() => { totalNumRef.current = totalNum; }, [totalNum]);
+
+  // Klaviyo: identify the shopper and fire "Started Checkout" once we have a
+  // valid email + items in the cart. This powers the abandoned-checkout flow.
+  const startedCheckoutRef = useRef(false);
+  const klEmailDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    if (!validEmail || items.length === 0 || totalNum <= 0) return;
+    if (klEmailDebounce.current) clearTimeout(klEmailDebounce.current);
+    klEmailDebounce.current = setTimeout(() => {
+      klIdentify(email, { first_name: address.firstName || undefined, last_name: address.lastName || undefined });
+      if (startedCheckoutRef.current) return;
+      startedCheckoutRef.current = true;
+      klTrack("Started Checkout", {
+        $email: email,
+        value: totalNum,
+        ItemNames: items.map((i) => i.product.node.name),
+        Items: items.map((i) => ({
+          ProductID: i.variation?.node.databaseId ?? i.product.node.databaseId,
+          ProductName: i.product.node.name,
+          Quantity: i.quantity,
+          ItemPrice: parseFloat((i.product.node.price ?? "0").replace(/[^0-9.]/g, "")) || 0,
+          ImageURL: i.product.node.image?.sourceUrl ?? null,
+        })),
+        CheckoutURL: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+    }, 1000);
+    return () => { if (klEmailDebounce.current) clearTimeout(klEmailDebounce.current); };
+  }, [email, items, totalNum, address.firstName, address.lastName]);
 
   // Sync shipMethod whenever cart changes (e.g. coupon applied changes chosen method)
   useEffect(() => {

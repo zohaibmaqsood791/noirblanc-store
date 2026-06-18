@@ -9,6 +9,52 @@ const SQUARE_API_BASE = isSandbox
 const WC_ENDPOINT = "https://noirblanc.store/?rest_route=/noirblanc/v1/checkout";
 const WC_SECRET   = process.env.NOIRBLANC_CHECKOUT_SECRET ?? "nb_hdls_7x9kQmP2wRtZvL4nEsYcJ8uA";
 
+// Fire the authoritative "Placed Order" event to Klaviyo (server-side, so it's
+// reliable even if the browser closes). Never throws — checkout must not depend on it.
+async function klaviyoPlacedOrder(opts: {
+  email?: string;
+  value: number;
+  orderNumber: string | null;
+  paymentId: string;
+  items?: { productId: number; variationId?: number; quantity: number; name: string }[];
+}) {
+  const key = process.env.KLAVIYO_PRIVATE_KEY;
+  if (!key || !opts.email) return;
+  try {
+    await fetch("https://a.klaviyo.com/api/events/", {
+      method: "POST",
+      headers: {
+        Authorization: `Klaviyo-API-Key ${key}`,
+        revision: "2024-10-15",
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          type: "event",
+          attributes: {
+            metric: { data: { type: "metric", attributes: { name: "Placed Order" } } },
+            profile: { data: { type: "profile", attributes: { email: opts.email } } },
+            value: opts.value,
+            unique_id: opts.orderNumber ?? opts.paymentId, // dedupe key
+            properties: {
+              OrderId: opts.orderNumber ?? opts.paymentId,
+              ItemNames: (opts.items ?? []).map((i) => i.name),
+              Items: (opts.items ?? []).map((i) => ({
+                ProductID: i.variationId ?? i.productId,
+                ProductName: i.name,
+                Quantity: i.quantity,
+              })),
+            },
+          },
+        },
+      }),
+    });
+  } catch (e) {
+    console.error("[klaviyo] Placed Order failed:", e);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -120,6 +166,15 @@ export async function POST(req: NextRequest) {
       console.error("WooCommerce order creation error:", wcErr);
       // Same — Square succeeded, don't surface WC failure to customer.
     }
+
+    // ── 3. Klaviyo Placed Order (fire-and-forget) ─────────────────────────
+    await klaviyoPlacedOrder({
+      email: buyerEmail,
+      value: Math.round(amountCents) / 100,
+      orderNumber,
+      paymentId,
+      items,
+    });
 
     return NextResponse.json({
       success: true,

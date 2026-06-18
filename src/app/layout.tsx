@@ -5,6 +5,7 @@ import "./globals.css";
 import MetaPixel from "@/components/MetaPixel";
 import GoogleTag from "@/components/GoogleTag";
 import StructuredData from "@/components/StructuredData";
+import Klaviyo from "@/components/Klaviyo";
 
 const GA4_ID = "G-LCCZT27BDH";
 const AW_ID  = "AW-17089443241";
@@ -90,6 +91,7 @@ gtag('config', '${AW_ID}');
         <StructuredData />
         <MetaPixel />
         <GoogleTag />
+        <Klaviyo />
         {children}
       </body>
     </html>

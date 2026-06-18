@@ -8,6 +8,7 @@ import { Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2, X } from "lucide-
 import { formatPrice } from "@/lib/utils";
 import { addToCart, fetchCart } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
+import { klTrack } from "@/lib/klaviyo";
 import { gtag, pushDataLayer, AW_ID } from "@/components/GoogleTag";
 import { useCartStore } from "@/store/cartStore";
 import type { Product, ProductVariation } from "@/types";
@@ -1144,6 +1145,16 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
       currency: "USD",
       items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: 1 }],
     });
+
+    // Klaviyo: Viewed Product (powers browse-abandonment + product recs)
+    klTrack("Viewed Product", {
+      ProductID: selectedVariation?.databaseId ?? product.databaseId,
+      ProductName: product.name,
+      Price: priceNum,
+      URL: typeof window !== "undefined" ? window.location.href : `/products/${product.slug}`,
+      ImageURL: product.image?.sourceUrl ?? null,
+      Categories: (product.productCategories?.nodes ?? []).map((c) => c.name),
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.databaseId, selectedVariation?.databaseId]);
 
@@ -1243,6 +1254,17 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         value: cartValue,
         currency: "USD",
         items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: pairs.length }],
+      });
+
+      // Klaviyo: Added to Cart (powers cart-abandonment flow)
+      klTrack("Added to Cart", {
+        ProductID: selectedVariation?.databaseId ?? product.databaseId,
+        ProductName: product.name,
+        Quantity: pairs.length,
+        Price: priceNum,
+        Value: cartValue,
+        URL: typeof window !== "undefined" ? window.location.href : `/products/${product.slug}`,
+        ImageURL: product.image?.sourceUrl ?? null,
       });
     } catch (e) {
       console.error(e);

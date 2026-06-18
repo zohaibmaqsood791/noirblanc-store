@@ -71,7 +71,16 @@ const OUR_ASSETS = [
   "https://*.noirblanc.store",
 ];
 
-const ALL = [...SQUARE, ...GPAY, ...APAY, ...META, ...GTAG];
+// ── Klaviyo (onsite JS, tracking, forms) ─────────────────────────────────────
+const KLAVIYO = [
+  "https://static.klaviyo.com",
+  "https://static-tracking.klaviyo.com",
+  "https://a.klaviyo.com",
+  "https://fast.a.klaviyo.com",
+  "https://*.klaviyo.com",
+];
+
+const ALL = [...SQUARE, ...GPAY, ...APAY, ...META, ...GTAG, ...KLAVIYO];
 
 const csp = [
   `default-src 'self'`,
