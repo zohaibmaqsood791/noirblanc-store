@@ -478,13 +478,19 @@ export default function CheckoutPage() {
         requestShippingContact: false,
       });
 
+      const apSub = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+      const apDisc = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+      const apSubAfterDisc = Math.max(apSub - apDisc, 0);
       const makeAPayRequest = () => p.paymentRequest({
         countryCode: "US",
         currencyCode: "USD",
+        lineItems: [
+          { amount: apSubAfterDisc.toFixed(2), label: "Subtotal" },
+          { amount: "0.00", label: "Shipping" },
+        ],
         total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
         requestBillingContact: false,
         requestShippingContact: true,
-        // Initial placeholder — replaced by shippingcontactchanged return value
         shippingOptions: [{ id: "pending", label: "Calculating...", amount: "0.00" }],
       });
 
@@ -577,7 +583,11 @@ export default function CheckoutPage() {
             })
             .catch(() => {});
 
-          return { shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          const lineItems = [
+            { amount: Math.max(sub - disc, 0).toFixed(2), label: "Subtotal" },
+            { amount: shipAmt.toFixed(2), label: "Shipping" },
+          ];
+          return { lineItems, shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
         });
 
         // When user picks a different shipping option, update total accordingly
@@ -589,7 +599,11 @@ export default function CheckoutPage() {
           const disc = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
           const newTotal = Math.max(sub - disc + shipAmt, 0.01);
           applePayTotalRef.current = newTotal;
-          return { total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
+          const lineItems = [
+            { amount: Math.max(sub - disc, 0).toFixed(2), label: "Subtotal" },
+            { amount: shipAmt.toFixed(2), label: "Shipping" },
+          ];
+          return { lineItems, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } };
         });
 
         const ap = await p.applePay(apRequest) as any;
