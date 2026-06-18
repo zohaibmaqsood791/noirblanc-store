@@ -286,11 +286,6 @@ export default function CheckoutPage() {
   const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [debugLines, setDebugLines] = useState<string[]>([]);
-  const dbg = (msg: string) => {
-    const ts = new Date().toISOString().slice(11, 23);
-    setDebugLines(prev => [...prev.slice(-40), `${ts} ${msg}`]);
-  };
   // WooCommerce rate.cost can come back as "$0.00" — strip currency symbols before parsing
   const money = (v: string | null | undefined) => parseFloat((v ?? "0").replace(/[^0-9.]/g, "")) || 0;
   const [cardMounted, setCardMounted] = useState(false);
@@ -519,12 +514,10 @@ export default function CheckoutPage() {
         const gpContainer = document.getElementById("sq-google-pay");
         if (gpContainer) {
           gpContainer.addEventListener("click", async () => {
-            dbg("GPay clicked → tokenize()");
             try {
               // Square googlePay.tokenize() returns the result directly — the
               // ontokenization event does not fire reliably, so use the return value.
               const r: any = await gp.tokenize!();
-              dbg(`tokenize() resolved: status=${r?.status} token=${r?.token ? "YES" : "NO"} err=${r?.errors?.[0]?.message ?? "none"}`);
               if (!r || r.status !== "OK" || !r.token) {
                 if (r?.status !== "Cancel") {
                   setPayError(r?.errors?.[0]?.message ?? `Google Pay failed (${r?.status})`);
@@ -533,7 +526,6 @@ export default function CheckoutPage() {
               }
               // Extract email + shipping contact from the Google Pay result
               const details = r.details ?? {};
-              dbg(`details keys: ${Object.keys(details).join(",")}`);
               const billing = details?.card?.billing ?? details?.billing ?? {};
               const shipping = details?.shipping?.contact ?? details?.shipping ?? {};
               const gpEmail = billing.email || shipping.email || details?.email || r?.email || email;
@@ -548,10 +540,8 @@ export default function CheckoutPage() {
                 country: ((billing.countryCode ?? shipping.countryCode ?? address.country) || "US").toUpperCase(),
                 phone: billing.phone ?? shipping.phone ?? address.phone,
               };
-              dbg(`GPay email=${gpEmail} → chargeToken`);
               await chargeTokenRef.current(r.token, gpEmail, gpAddress);
             } catch (err: any) {
-              dbg(`tokenize() threw: ${err?.message ?? err}`);
               const msg = String(err?.message ?? err ?? "");
               if (!/cancel|abort/i.test(msg)) setPayError("Google Pay failed. Please try again.");
             }
@@ -707,7 +697,6 @@ export default function CheckoutPage() {
         }),
       });
       const data = await res.json();
-      dbg(`/api/square/payment: status=${res.status} ok=${res.ok} success=${data?.success} err=${data?.error ?? "none"}`);
       if (!res.ok || !data.success) {
         const errMsg = data.error ?? "Payment failed. Please try again.";
         setPayError(errMsg);
@@ -748,8 +737,8 @@ export default function CheckoutPage() {
       else successParams.set("payment", data.paymentId);
       successParams.set("total", totalNum.toFixed(2));
       router.push(`/checkout/success?${successParams.toString()}`);
-    } catch (err: any) {
-      dbg(`chargeToken threw: ${err?.message ?? err}`);
+    } catch (err) {
+      console.error("[chargeToken] threw:", err);
       setPayError("An unexpected error occurred. Please try again.");
       setPaying(false);
     }
@@ -1224,14 +1213,6 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
-
-            {/* Debug panel — remove after payments are fixed */}
-            {debugLines.length > 0 && (
-              <div style={{ background: "#000", color: "#0f0", fontFamily: "monospace", fontSize: 11, padding: 8, borderRadius: 6, marginBottom: 12, maxHeight: 260, overflowY: "auto" }}>
-                <div style={{ color: "#ff0", marginBottom: 4, fontWeight: "bold" }}>Pay Debug</div>
-                {debugLines.map((l, i) => <div key={i}>{l}</div>)}
-              </div>
-            )}
 
             {/* Error */}
             {payError && (
