@@ -511,11 +511,16 @@ export default function CheckoutPage() {
         if (!active) { ap?.destroy?.(); return; }
         ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
           const { status, token, errors } = e.detail;
+          alert(`[APay] status=${status} token=${token ? token.slice(0,20)+"…" : "NONE"} err=${errors?.[0]?.message ?? "none"}`);
           if (status !== "OK" || !token) {
             setPayError(errors?.[0]?.message ?? `Apple Pay failed (${status})`);
             return;
           }
-          await chargeTokenRef.current(token);
+          try {
+            await chargeTokenRef.current(token);
+          } catch(err) {
+            alert(`[APay] chargeToken threw: ${String(err)}`);
+          }
         });
         applePayRef.current = ap;
         setApplePayMounted(true);
@@ -576,7 +581,9 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setPayError(data.error ?? "Payment failed. Please try again.");
+        const errMsg = data.error ?? "Payment failed. Please try again.";
+        alert(`[Square API error] ${errMsg} | HTTP ${res.status}`);
+        setPayError(errMsg);
         setPaying(false);
         return;
       }
