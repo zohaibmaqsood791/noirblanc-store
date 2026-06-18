@@ -475,7 +475,13 @@ export default function CheckoutPage() {
       try {
         const gp = await p.googlePay(makeRequest());
         if (!active) { gp.destroy(); return; }
-        await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
+        try {
+          await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
+        } catch (attachErr) {
+          console.warn("[GPay] attach failed:", attachErr);
+          gp.destroy();
+          throw attachErr;
+        }
         if (!active) { gp.destroy(); return; }
 
         const gpContainer = document.getElementById("sq-google-pay");
@@ -499,7 +505,7 @@ export default function CheckoutPage() {
         console.info("[Square] Google Pay not available:", gpErr);
       }
 
-      // ── Apple Pay ──
+      // ── Apple Pay — always attempt independently of Google Pay result ──
       try {
         const ap = await p.applePay(makeRequest()) as any;
         if (!active) { ap?.destroy?.(); return; }
@@ -518,11 +524,16 @@ export default function CheckoutPage() {
       }
     }
 
-    // Tear down old buttons first, then remount with fresh total
+    // Tear down old buttons, clear Google Pay DOM div, then remount with fresh total
     if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; }
     if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; }
     setGooglePayMounted(false);
     setApplePayMounted(false);
+
+    // Square's destroy() doesn't clear the injected iframe from the DOM —
+    // manually wipe the container so the next attach() call starts fresh.
+    const gpDiv = document.getElementById("sq-google-pay");
+    if (gpDiv) gpDiv.innerHTML = "";
 
     mountExpressPay();
     return () => {
