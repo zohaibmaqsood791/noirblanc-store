@@ -90,3 +90,10 @@ html {
   background: #d4d4d4;
   border-radius: 2px;
 }
+
+/* Constrain Klaviyo "Get 10% Off" teaser button width on mobile */
+@media screen and (max-width: 750px) {
+  .needsclick.kl-teaser-XubguM {
+    max-width: 120px;
+  }
+}
