@@ -98,9 +98,12 @@ html {
   }
 }
 
-/* Temporarily hide all Klaviyo on-site forms/popups/teasers
-   (re-enable by removing this block, or unpublish the form in Klaviyo). */
+/* Temporarily hide ALL Klaviyo on-site UI — teasers, popups, banners, overlays.
+   (re-enable by removing this block, or unpublish the form in Klaviyo.) */
 [class*="kl-teaser"],
-div[class*="klaviyo-form-"] {
+div[class*="klaviyo-form-"],
+div[class*="kl-private-reset-css"],
+[data-testid="POPUP"],
+[aria-label*="POPUP" i] {
   display: none !important;
 }
