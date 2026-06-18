@@ -116,14 +116,12 @@ function OrderSummary({
   // "has shipping selected" = a method is chosen (even if free)
   const hasShippingMethod = (cart?.chosenShippingMethods?.length ?? 0) > 0;
   const shippingNum = parseFloat(shippingTotal.replace(/[^0-9.]/g, "") || "0");
-  // Tax comes straight from WooCommerce (totalTax), which calculates it based on
-  // the customer's address. Fall back to deriving it if totalTax isn't present.
+  // Derive tax: total - subtotal - shipping + discount (WooCommerce includes tax in total)
   const subtotalNum2 = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
   const shippingNum2 = parseFloat(shippingTotal.replace(/[^0-9.]/g, ""));
   const discountNum2 = parseFloat((cart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
   const totalNum2 = parseFloat((cart?.total ?? "0").replace(/[^0-9.]/g, ""));
-  const wcTaxNum = parseFloat((cart?.totalTax ?? "0").replace(/[^0-9.]/g, ""));
-  const taxNum = wcTaxNum > 0 ? wcTaxNum : Math.max(0, totalNum2 - subtotalNum2 - shippingNum2 + discountNum2);
+  const taxNum = Math.max(0, totalNum2 - subtotalNum2 - shippingNum2 + discountNum2);
 
   async function handleApplyCoupon() {
     if (!discountCode.trim()) return;
@@ -599,24 +597,18 @@ export default function CheckoutPage() {
           const postcode = contact?.postalCode ?? "";
           const country = (contact?.countryCode ?? "US").toUpperCase();
           updateCustomerShippingAddress({ address1: "", city, state, postcode, country })
-            .then(async updatedCart => {
+            .then(updatedCart => {
               if (!updatedCart) return;
               const rates = updatedCart.availableShippingMethods?.[0]?.rates ?? [];
               if (rates.length === 0) return;
               const best = rates.reduce((a: ShippingRate, b: ShippingRate) => money(a.cost) <= money(b.cost) ? a : b);
-              // Use the cart returned by updateShippingMethod — its total includes
-              // shipping AND WooCommerce-calculated tax for this address.
-              const shippedCart = await updateShippingMethod(best.id);
+              updateShippingMethod(best.id).catch(() => {});
               applePayShipMethodRef.current = best.id;
-              applePayShippingTotalRef.current = money(best.cost);
-              const authTotal = parseFloat((shippedCart?.total ?? "0").replace(/[^0-9.]/g, ""));
-              if (authTotal > 0) {
-                applePayTotalRef.current = authTotal; // tax-inclusive
-              } else {
-                const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
-                const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
-                applePayTotalRef.current = Math.max(newSub - newDisc + money(best.cost), 0.01);
-              }
+              const s = money(best.cost);
+              applePayShippingTotalRef.current = s;
+              const newSub = parseFloat((updatedCart.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+              const newDisc = parseFloat((updatedCart.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+              applePayTotalRef.current = Math.max(newSub - newDisc + s, 0.01);
             })
             .catch(() => {});
 

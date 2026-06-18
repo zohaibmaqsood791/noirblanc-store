@@ -66,7 +66,6 @@ export interface Cart {
   total: string;
   subtotal: string;
   shippingTotal: string;
-  totalTax: string;
   feeTotal: string;
   discountTotal: string;
   appliedCoupons?: { code: string; discountAmount: string }[];

@@ -157,7 +157,6 @@ export const GET_CART = gql`
       total
       subtotal
       shippingTotal
-      totalTax
       feeTotal
       discountTotal
       appliedCoupons { code discountAmount }
@@ -206,7 +205,6 @@ export const CART_FIELDS = gql`
     total
     subtotal
     shippingTotal
-    totalTax
     feeTotal
     discountTotal
     appliedCoupons {
