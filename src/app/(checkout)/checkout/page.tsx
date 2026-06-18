@@ -268,8 +268,6 @@ export default function CheckoutPage() {
 
   const [email, setEmail] = useState("");
   const [emailNews, setEmailNews] = useState(false);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const dbg = (msg: string) => setDebugLogs(prev => [...prev.slice(-8), msg]);
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
@@ -535,7 +533,6 @@ export default function CheckoutPage() {
 
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
-          dbg("SCC: " + JSON.stringify(contact));
           applePayContactRef.current = contact;
           try {
             const updatedCart = await updateCustomerShippingAddress({
@@ -684,7 +681,6 @@ export default function CheckoutPage() {
       };
       try { sessionStorage.setItem("nb_order", JSON.stringify(orderData)); } catch {}
       setCart(null);
-      try { sessionStorage.setItem("nb_debug_logs", JSON.stringify(debugLogs)); } catch {}
       const successParams = new URLSearchParams();
       if (data.orderNumber) successParams.set("order", data.orderNumber);
       else successParams.set("payment", data.paymentId);
@@ -825,15 +821,6 @@ export default function CheckoutPage() {
 
             {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
             <div className={hasExpressCheckout ? "mb-6" : ""}>
-              {debugLogs.length > 0 && (
-                <div style={{ background: "#000", color: "#0f0", fontSize: 11, padding: 8, borderRadius: 6, marginBottom: 8, maxHeight: 200, overflowY: "auto", wordBreak: "break-all" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <b>DEBUG</b>
-                    <button onClick={() => setDebugLogs([])} style={{ color: "#f00", fontWeight: "bold" }}>✕</button>
-                  </div>
-                  {debugLogs.map((l, i) => <div key={i} style={{ marginBottom: 4, borderBottom: "1px solid #333", paddingBottom: 4 }}>{l}</div>)}
-                </div>
-              )}
               {hasExpressCheckout && (
                 <p className="text-xs text-center text-[#717171] mb-3 font-medium tracking-wide uppercase">Express checkout</p>
               )}
@@ -860,39 +847,36 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
-                      // Square's SDK does not return the customer's email from Apple Pay —
-                      // require it from the form field so chargeToken always has a valid email.
-                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                        setPayError("Please enter your email address in the Contact section below before using Apple Pay.");
-                        document.getElementById("contact-email")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        return;
-                      }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
-                        dbg("RESULT: " + JSON.stringify(result));
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        // Address comes from shippingcontactchanged ref (full address available after user confirms)
-                        const contact = applePayContactRef.current ?? {};
+                        // Square returns full contact in result.details.card.billing (confirmed via debug)
+                        const billing = result.details?.card?.billing ?? result.details?.billing ?? {};
+                        const shipping = result.details?.shipping?.contact ?? applePayContactRef.current ?? {};
+                        const apEmail =
+                          billing.email ||
+                          shipping.email ||
+                          email;
                         const apAddress = {
-                          firstName: contact.givenName ?? address.firstName,
-                          lastName: contact.familyName ?? address.lastName,
-                          address1: (contact.addressLines ?? [])[0] ?? address.address1,
-                          address2: (contact.addressLines ?? [])[1] ?? address.address2,
-                          city: contact.locality ?? address.city,
-                          state: contact.administrativeArea ?? address.state,
-                          postcode: contact.postalCode ?? address.postcode,
-                          country: ((contact.countryCode ?? address.country) || "US").toUpperCase(),
-                          phone: contact.phoneNumber ?? address.phone,
+                          firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
+                          lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
+                          address1: (billing.addressLines ?? [])[0] ?? (shipping.addressLines ?? [])[0] ?? address.address1,
+                          address2: (billing.addressLines ?? [])[1] ?? address.address2,
+                          city: billing.city ?? shipping.city ?? address.city,
+                          state: billing.state ?? shipping.state ?? address.state,
+                          postcode: billing.postalCode ?? shipping.postalCode ?? address.postcode,
+                          country: ((billing.countryCode ?? shipping.countryCode ?? address.country) || "US").toUpperCase(),
+                          phone: billing.phone ?? shipping.phone ?? address.phone,
                         };
                         const overrides = {
                           total: applePayTotalRef.current > 0 ? applePayTotalRef.current : undefined,
                           shipMethod: applePayShipMethodRef.current || undefined,
                           shipTotal: applePayShippingTotalRef.current > 0 ? applePayShippingTotalRef.current : undefined,
                         };
-                        await chargeTokenRef.current(result.token, email, apAddress, overrides);
+                        await chargeTokenRef.current(result.token, apEmail, apAddress, overrides);
                       } catch (err) {
                         setPayError("Apple Pay failed. Please try again.");
                         console.error("[Apple Pay] tokenize threw:", err);

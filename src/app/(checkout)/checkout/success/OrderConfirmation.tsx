@@ -52,7 +52,6 @@ export default function OrderConfirmation({
 }) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [itemsOpen, setItemsOpen] = useState(false);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   useEffect(() => {
     try {
@@ -62,13 +61,6 @@ export default function OrderConfirmation({
         sessionStorage.removeItem("nb_order");
       }
     } catch {}
-    try {
-      const logs = sessionStorage.getItem("nb_debug_logs");
-      if (logs) {
-        setDebugLogs(JSON.parse(logs));
-        sessionStorage.removeItem("nb_debug_logs");
-      }
-    } catch {}
   }, []);
 
   const totalNum = parseFloat(order?.total ?? totalParam ?? "0") || 0;
@@ -76,12 +68,6 @@ export default function OrderConfirmation({
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      {debugLogs.length > 0 && (
-        <div style={{ background: "#000", color: "#0f0", fontSize: 11, padding: 10, wordBreak: "break-all" }}>
-          <b>DEBUG (Apple Pay logs)</b>
-          {debugLogs.map((l, i) => <div key={i} style={{ marginTop: 6, borderTop: "1px solid #333", paddingTop: 6 }}>{l}</div>)}
-        </div>
-      )}
       <PurchaseEvent
         orderId={displayOrder ?? paymentParam ?? ""}
         total={totalNum}
