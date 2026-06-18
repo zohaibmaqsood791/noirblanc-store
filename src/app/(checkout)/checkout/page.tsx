@@ -296,7 +296,7 @@ export default function CheckoutPage() {
   const [paymentsReady, setPaymentsReady] = useState(false);
   // Keep chargeToken ref so express-pay event listeners always call the latest version
   // (avoids stale closure capturing old email/address/cart state)
-  const chargeTokenRef = useRef<(token: string) => Promise<void>>(async () => {});
+  const chargeTokenRef = useRef<(token: string, email?: string, addr?: typeof address) => Promise<void>>(async () => {});
 
   // Fetch WooCommerce country/state data on mount
   useEffect(() => {
@@ -467,8 +467,8 @@ export default function CheckoutPage() {
         countryCode: "US",
         currencyCode: "USD",
         total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
-        requestBillingContact: false,
-        requestShippingContact: false,
+        requestBillingContact: true,
+        requestShippingContact: true,
       });
 
       // ── Google Pay ──
@@ -537,11 +537,10 @@ export default function CheckoutPage() {
     };
   }, [totalNum, paymentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function chargeToken(token: string) {
+  async function chargeToken(token: string, overrideEmail?: string, overrideAddress?: typeof address) {
     setPayError(null);
     setPaying(true);
     try {
-      // Build items list from cart for WooCommerce order creation
       const wcItems = items.map((item) => ({
         productId:   item.product.node.databaseId,
         variationId: item.variation?.node.databaseId ?? undefined,
@@ -549,17 +548,21 @@ export default function CheckoutPage() {
         name:        item.product.node.name,
       }));
 
+      const effectiveEmail   = overrideEmail   ?? email;
+      const effectiveAddress = overrideAddress ?? address;
+      const effectiveCountry = overrideAddress
+        ? (overrideAddress.country.length === 2 ? overrideAddress.country : (COUNTRY_CODES[overrideAddress.country] ?? overrideAddress.country))
+        : (COUNTRY_CODES[address.country] ?? address.country);
+
       const res = await fetch("/api/square/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceId:       token,
           amountCents:    Math.round(totalNum * 100),
-          buyerEmail:     email,
-          billing:        sameAsBilling
-            ? { ...address, email, country: COUNTRY_CODES[address.country] ?? address.country }
-            : { ...billingAddress, email, country: COUNTRY_CODES[billingAddress.country] ?? billingAddress.country },
-          shipping:       { ...address, country: COUNTRY_CODES[address.country] ?? address.country },
+          buyerEmail:     effectiveEmail,
+          billing:        { ...effectiveAddress, email: effectiveEmail, country: effectiveCountry },
+          shipping:       { ...effectiveAddress, country: effectiveCountry },
           items:          wcItems,
           shippingMethod: shipMethod,
           shippingTotal:  parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, "")),
@@ -576,16 +579,16 @@ export default function CheckoutPage() {
       // Save order details for the thank you page
       const orderData = {
         orderNumber: data.orderNumber ?? null,
-        email,
-        firstName: address.firstName,
-        lastName: address.lastName,
+        email: effectiveEmail,
+        firstName: effectiveAddress.firstName,
+        lastName: effectiveAddress.lastName,
         address: {
-          address1: address.address1,
-          address2: address.address2,
-          city: address.city,
-          state: address.state,
-          postcode: address.postcode,
-          country: address.country,
+          address1: effectiveAddress.address1,
+          address2: effectiveAddress.address2,
+          city: effectiveAddress.city,
+          state: effectiveAddress.state,
+          postcode: effectiveAddress.postcode,
+          country: effectiveAddress.country,
         },
         items: items.map((item) => ({
           name: item.product.node.name,
@@ -769,14 +772,26 @@ export default function CheckoutPage() {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
                       try {
-                        const result: SqTokenResult = await ap.tokenize();
+                        const result: SqTokenResult & { details?: any } = await ap.tokenize();
                         if (result.status !== "OK" || !result.token) {
                           setPayError(result.errors?.[0]?.message ?? `Apple Pay failed (${result.status})`);
                           return;
                         }
-                        await chargeTokenRef.current(result.token);
+                        // Extract shipping/billing contact provided by Apple Pay
+                        const contact = result.details?.shippingContact ?? result.details?.contact ?? {};
+                        const apEmail = contact.email ?? email;
+                        const apAddr: typeof address = {
+                          firstName: contact.givenName   ?? address.firstName,
+                          lastName:  contact.familyName  ?? address.lastName,
+                          address1:  contact.addressLines?.[0] ?? address.address1,
+                          address2:  contact.addressLines?.[1] ?? address.address2 ?? "",
+                          city:      contact.locality           ?? address.city,
+                          state:     contact.administrativeArea ?? address.state,
+                          postcode:  contact.postalCode         ?? address.postcode,
+                          country:   contact.countryCode        ?? COUNTRY_CODES[address.country] ?? "US",
+                        };
+                        await chargeTokenRef.current(result.token, apEmail, apAddr);
                       } catch (err) {
-                        // User cancelled or Apple Pay unavailable — do nothing
                         console.info("[APay] tokenize cancelled/failed:", err);
                       }
                     }}
