@@ -301,6 +301,8 @@ export default function CheckoutPage() {
   const applePayShipMethodRef = useRef<string>("");
   const applePayShippingTotalRef = useRef<number>(0);
   const applePayTotalRef = useRef<number>(0);
+  // Full contact stored during shippingcontactchanged (email is available there)
+  const applePayContactRef = useRef<Record<string, any> | null>(null);
 
   // Fetch WooCommerce country/state data on mount
   useEffect(() => {
@@ -522,13 +524,16 @@ export default function CheckoutPage() {
         const ap = await p.applePay(makeAPayRequest()) as any;
         if (!active) { ap?.destroy?.(); return; }
 
-        // Reset Apple Pay shipping refs for this session
+        // Reset Apple Pay refs for this session
         applePayShipMethodRef.current = "";
         applePayShippingTotalRef.current = 0;
         applePayTotalRef.current = 0;
+        applePayContactRef.current = null;
 
         ap.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
+          // Store the contact — email is available here even before tokenize resolves
+          applePayContactRef.current = contact;
           try {
             const updatedCart = await updateCustomerShippingAddress({
               address1: "",
@@ -539,7 +544,11 @@ export default function CheckoutPage() {
             });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
             if (rates.length === 0) {
-              await event.updateWith({ error: "ADDRESS_UNSERVICEABLE" });
+              // No rates — still respond so Apple Pay doesn't freeze
+              await event.updateWith({
+                total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
+                shippingOptions: [],
+              });
               return;
             }
             const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
@@ -565,7 +574,11 @@ export default function CheckoutPage() {
             });
           } catch (err) {
             console.error("[APay] shippingcontactchanged error:", err);
-            await event.updateWith({ error: "ADDRESS_UNSERVICEABLE" });
+            // Must always call updateWith or Apple Pay freezes
+            await event.updateWith({
+              total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
+              shippingOptions: [],
+            });
           }
         });
 
@@ -840,19 +853,23 @@ export default function CheckoutPage() {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        // Extract contact info provided by Apple Pay
-                        const contact = result.details?.shippingContact ?? result.details?.contact ?? {};
-                        const apEmail = contact.emailAddress ?? email;
+                        // Extract contact: prefer tokenize result, fall back to shippingcontactchanged ref, then form fields
+                        const resultContact = result.details?.shippingContact ?? result.details?.contact ?? result.details?.billing ?? {};
+                        const eventContact = applePayContactRef.current ?? {};
+                        const apEmail =
+                          resultContact.emailAddress ||
+                          eventContact.emailAddress ||
+                          email;
                         const apAddress = {
-                          firstName: contact.givenName ?? address.firstName,
-                          lastName: contact.familyName ?? address.lastName,
-                          address1: (contact.addressLines ?? [])[0] ?? address.address1,
-                          address2: (contact.addressLines ?? [])[1] ?? address.address2,
-                          city: contact.locality ?? address.city,
-                          state: contact.administrativeArea ?? address.state,
-                          postcode: contact.postalCode ?? address.postcode,
-                          country: (contact.countryCode ?? address.country).toUpperCase(),
-                          phone: contact.phoneNumber ?? address.phone,
+                          firstName: resultContact.givenName ?? eventContact.givenName ?? address.firstName,
+                          lastName: resultContact.familyName ?? eventContact.familyName ?? address.lastName,
+                          address1: (resultContact.addressLines ?? [])[0] ?? (eventContact.addressLines ?? [])[0] ?? address.address1,
+                          address2: (resultContact.addressLines ?? [])[1] ?? (eventContact.addressLines ?? [])[1] ?? address.address2,
+                          city: resultContact.locality ?? eventContact.locality ?? address.city,
+                          state: resultContact.administrativeArea ?? eventContact.administrativeArea ?? address.state,
+                          postcode: resultContact.postalCode ?? eventContact.postalCode ?? address.postcode,
+                          country: ((resultContact.countryCode ?? eventContact.countryCode ?? address.country) || "US").toUpperCase(),
+                          phone: resultContact.phoneNumber ?? eventContact.phoneNumber ?? address.phone,
                         };
                         const overrides = {
                           total: applePayTotalRef.current > 0 ? applePayTotalRef.current : undefined,
