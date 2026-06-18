@@ -684,6 +684,7 @@ export default function CheckoutPage() {
       };
       try { sessionStorage.setItem("nb_order", JSON.stringify(orderData)); } catch {}
       setCart(null);
+      try { sessionStorage.setItem("nb_debug_logs", JSON.stringify(debugLogs)); } catch {}
       const successParams = new URLSearchParams();
       if (data.orderNumber) successParams.set("order", data.orderNumber);
       else successParams.set("payment", data.paymentId);
