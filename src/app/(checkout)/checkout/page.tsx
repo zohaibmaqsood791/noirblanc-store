@@ -521,21 +521,21 @@ export default function CheckoutPage() {
         console.info("[Square] Google Pay not available:", gpErr);
       }
 
-      // ── Apple Pay — tokenize() returns a Promise; shippingcontactchanged updates total ──
+      // ── Apple Pay — listener must be on paymentRequest, not on the ap button ──
       try {
-        const ap = await p.applePay(makeAPayRequest()) as any;
-        if (!active) { ap?.destroy?.(); return; }
-
         // Reset Apple Pay refs for this session
         applePayShipMethodRef.current = "";
         applePayShippingTotalRef.current = 0;
         applePayTotalRef.current = 0;
         applePayContactRef.current = null;
 
-        ap.addEventListener("shippingcontactchanged", async (event: any) => {
+        const apRequest = makeAPayRequest() as any;
+
+        // shippingcontactchanged must be registered on the paymentRequest object
+        apRequest.addEventListener("shippingcontactchanged", async (event: any) => {
           const contact = event?.detail?.shippingContact ?? {};
           applePayContactRef.current = contact;
-          let log = `contact:${JSON.stringify({city:contact.locality,state:contact.administrativeArea,zip:contact.postalCode,country:contact.countryCode})} `;
+          let log = `SCC city:${contact.locality} state:${contact.administrativeArea} zip:${contact.postalCode} `;
           try {
             const updatedCart = await updateCustomerShippingAddress({
               address1: "",
@@ -547,8 +547,7 @@ export default function CheckoutPage() {
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
             log += `rates:${rates.length} `;
             if (rates.length === 0) {
-              log += `NO_RATES`;
-              setSccLog(log);
+              setSccLog(log + "NO_RATES");
               await event.updateWith({
                 total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
                 shippingOptions: [],
@@ -573,15 +572,13 @@ export default function CheckoutPage() {
             }));
             const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
             if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
-            log += `shipAmt:${shipAmt} newTotal:${newTotal} opts:${JSON.stringify(shippingOptions)}`;
-            setSccLog(log);
+            setSccLog(log + `ship:${shipAmt} total:${newTotal} opts:${JSON.stringify(shippingOptions)}`);
             await event.updateWith({
               shippingOptions,
               total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" },
             });
           } catch (err) {
-            log += `ERR:${String(err)}`;
-            setSccLog(log);
+            setSccLog(log + `ERR:${String(err)}`);
             await event.updateWith({
               total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
               shippingOptions: [],
@@ -589,6 +586,8 @@ export default function CheckoutPage() {
           }
         });
 
+        const ap = await p.applePay(apRequest) as any;
+        if (!active) { ap?.destroy?.(); return; }
         applePayRef.current = ap;
         setApplePayMounted(true);
       } catch (apErr) {
