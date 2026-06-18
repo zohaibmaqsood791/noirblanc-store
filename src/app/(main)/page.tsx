@@ -45,7 +45,7 @@ export default async function HomePage() {
       {/* ── Hero ── */}
       <section className="relative min-h-[420px] sm:min-h-[560px] lg:min-h-[680px] flex items-center justify-center text-center bg-neutral-900 overflow-hidden">
         <Image
-          src="https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_069633e7-c7a8-4655-b052-bedc772e8603.png"
+          src="/hero-beach.png"
           alt="Noir & Blanc Hero"
           fill
           className="object-cover opacity-60"
