@@ -533,25 +533,26 @@ export default function CheckoutPage() {
 
         // shippingcontactchanged must be registered on the paymentRequest object
         apRequest.addEventListener("shippingcontactchanged", async (event: any) => {
-          // Log raw event structure to discover correct field names
-          const detailKeys = Object.keys(event?.detail ?? {});
-          const sc = event?.detail?.shippingContact ?? event?.detail ?? {};
-          const scKeys = Object.keys(sc);
-          const updateFn = event?.detail?.updateWith ?? event?.updateWith;
-          let log = `detailKeys:[${detailKeys}] scKeys:[${scKeys}] city:${sc.locality??sc.city} state:${sc.administrativeArea??sc.state} zip:${sc.postalCode??sc.zipCode} updateFn:${typeof updateFn} `;
+          // Discover full event structure
+          const evKeys: string[] = [];
+          try { for (const k in event) evKeys.push(`${k}:${typeof (event as any)[k]}`); } catch {}
+          const sc = event?.shippingContact ?? event?.detail?.shippingContact ?? event?.detail ?? {};
+          const updateFn = event?.updateWith ?? event?.detail?.updateWith ?? event?.resolve;
+          let log = `evKeys:[${evKeys.slice(0,8).join(",")}] sc:${JSON.stringify(sc).slice(0,80)} updateFn:${typeof updateFn} `;
 
           const doUpdate = (payload: object) => {
-            if (typeof event?.detail?.updateWith === "function") return event.detail.updateWith(payload);
             if (typeof event?.updateWith === "function") return event.updateWith(payload);
+            if (typeof event?.detail?.updateWith === "function") return event.detail.updateWith(payload);
+            if (typeof event?.resolve === "function") return event.resolve(payload);
             setSccLog(log + "NO_UPDATE_FN");
           };
 
           applePayContactRef.current = sc;
           try {
-            const city = sc.locality ?? sc.city ?? "";
-            const state = sc.administrativeArea ?? sc.state ?? "";
-            const postcode = sc.postalCode ?? sc.zipCode ?? "";
-            const country = (sc.countryCode ?? sc.country ?? "US").toUpperCase();
+            const city = event?.shippingContact?.locality ?? sc.locality ?? sc.city ?? "";
+            const state = event?.shippingContact?.administrativeArea ?? sc.administrativeArea ?? sc.state ?? "";
+            const postcode = event?.shippingContact?.postalCode ?? sc.postalCode ?? sc.zipCode ?? "";
+            const country = ((event?.shippingContact?.countryCode ?? sc.countryCode ?? sc.country ?? "US")).toUpperCase();
 
             const updatedCart = await updateCustomerShippingAddress({ address1: "", city, state, postcode, country });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
