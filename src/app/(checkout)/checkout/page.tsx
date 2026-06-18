@@ -200,7 +200,7 @@ function OrderSummary({
             onChange={(e) => { setDiscountCode(e.target.value); setCouponError(null); }}
             onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
             placeholder="Discount code"
-            className="flex-1 border border-[#D4D4D4] rounded-[5px] px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#1a1a1a] transition-colors"
+            className="flex-1 border border-[#D4D4D4] rounded-[5px] px-3 py-2.5 text-[16px] bg-white focus:outline-none focus:border-[#1a1a1a] transition-colors"
           />
           <button
             onClick={handleApplyCoupon}
@@ -289,8 +289,6 @@ export default function CheckoutPage() {
   const [sdkReady, setSdkReady] = useState(false);
   const [googlePayMounted, setGooglePayMounted] = useState(false);
   const [applePayMounted, setApplePayMounted] = useState(false);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-  const addDebug = (msg: string) => setDebugLog((prev) => [`${new Date().toISOString().slice(11,19)} ${msg}`, ...prev.slice(0, 19)]);
   const cardRef = useRef<SquareCard | null>(null);
   const googlePayRef = useRef<SqExpressButton | null>(null);
   const applePayRef = useRef<SqExpressButton | null>(null);
@@ -459,13 +457,11 @@ export default function CheckoutPage() {
      The card form above is intentionally separate and stays mounted. */
   useEffect(() => {
     const p = paymentsRef.current;
-    addDebug(`Effect2: totalNum=${totalNum} paymentsReady=${paymentsReady} p=${!!p}`);
     if (!p || !paymentsReady || totalNum <= 0) return;
     let active = true;
 
     async function mountExpressPay() {
       if (!p || !active) return;
-      addDebug(`mountExpressPay start total=$${totalNum}`);
 
       const makeRequest = () => p.paymentRequest({
         countryCode: "US",
@@ -505,15 +501,12 @@ export default function CheckoutPage() {
         });
         googlePayRef.current = gp;
         setGooglePayMounted(true);
-        addDebug(`GPay mounted OK total=$${totalNum}`);
       } catch (gpErr) {
-        addDebug(`GPay unavailable: ${String(gpErr).slice(0,60)}`);
         console.info("[Square] Google Pay not available:", gpErr);
       }
 
       // ── Apple Pay — always attempt independently of Google Pay result ──
       try {
-        addDebug(`APay init total=$${totalNum}`);
         const ap = await p.applePay(makeRequest()) as any;
         if (!active) { ap?.destroy?.(); return; }
         ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
@@ -526,23 +519,21 @@ export default function CheckoutPage() {
         });
         applePayRef.current = ap;
         setApplePayMounted(true);
-        addDebug(`APay mounted OK total=$${totalNum}`);
       } catch (apErr) {
-        addDebug(`APay unavailable: ${String(apErr).slice(0,60)}`);
         console.info("[Square] Apple Pay not available:", apErr);
       }
     }
 
     // Tear down old buttons, clear Google Pay DOM div, then remount with fresh total
-    if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; addDebug("GPay destroyed"); }
-    if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; addDebug("APay destroyed"); }
+    if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; }
+    if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; }
     setGooglePayMounted(false);
     setApplePayMounted(false);
 
     // Square's destroy() doesn't clear the injected iframe from the DOM —
     // manually wipe the container so the next attach() call starts fresh.
     const gpDiv = document.getElementById("sq-google-pay");
-    if (gpDiv) { gpDiv.innerHTML = ""; addDebug("GPay div cleared"); }
+    if (gpDiv) gpDiv.innerHTML = "";
 
     mountExpressPay();
     return () => {
@@ -1110,20 +1101,6 @@ export default function CheckoutPage() {
 
       </div>{/* end lg:flex */}
 
-    </div>
-    {/* ── DEBUG PANEL — remove after debugging ── */}
-    <div style={{
-      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
-      background: "rgba(0,0,0,0.88)", color: "#0f0", fontFamily: "monospace",
-      fontSize: 11, padding: "8px", maxHeight: "45vh", overflowY: "auto",
-    }}>
-      <div style={{ color: "#ff0", fontWeight: "bold", marginBottom: 4 }}>
-        DEBUG | total={totalNum.toFixed(2)} | sdk={sdkReady?1:0} | pReady={paymentsReady?1:0} | gp={googlePayMounted?1:0} | ap={applePayMounted?1:0}
-      </div>
-      {debugLog.length === 0
-        ? <div style={{color:"#aaa"}}>waiting for events…</div>
-        : debugLog.map((l, i) => <div key={i}>{l}</div>)
-      }
     </div>
     </>
   );
