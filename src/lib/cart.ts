@@ -229,22 +229,21 @@ export async function updateCustomerShippingAddress(address: {
   address1: string; city: string; state: string; postcode: string; country: string;
 }): Promise<Cart | null> {
   try {
-    // Update customer shipping address so WooCommerce can calculate rates
+    const addr = {
+      address1: address.address1,
+      city: address.city,
+      state: address.state,
+      postcode: address.postcode,
+      country: address.country,
+    };
+    // Set BOTH shipping and billing so WooCommerce can calculate shipping rates
+    // AND tax regardless of whether "Calculate tax based on" is set to the
+    // shipping or billing address.
     await requestWithSession<unknown>(
       `mutation UpdateCustomerShipping($input: UpdateCustomerInput!) {
         updateCustomer(input: $input) { customer { id } }
       }`,
-      {
-        input: {
-          shipping: {
-            address1: address.address1,
-            city: address.city,
-            state: address.state,
-            postcode: address.postcode,
-            country: address.country,
-          },
-        },
-      }
+      { input: { shipping: addr, billing: addr } }
     );
     // Re-fetch cart to get updated shipping rates + tax
     return await fetchCart();
