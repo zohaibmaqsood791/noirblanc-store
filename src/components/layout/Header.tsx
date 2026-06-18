@@ -36,7 +36,7 @@ export default function Header() {
             </div>
 
             {/* Logo — centered on mobile, left on desktop */}
-            <Link href="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 flex-shrink-0">
+            <Link href="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:mr-8 flex-shrink-0">
               <Image
                 src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
                 alt="Noir & Blanc"
