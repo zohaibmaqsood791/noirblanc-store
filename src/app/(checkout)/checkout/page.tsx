@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
-import type { Address } from "@/types";
+import type { Address, ShippingRate } from "@/types";
 
 /* ─── Square SDK types ─────────────────────────────────────────────────── */
 interface SqTokenResult {
@@ -296,7 +296,11 @@ export default function CheckoutPage() {
   const [paymentsReady, setPaymentsReady] = useState(false);
   // Keep chargeToken ref so express-pay event listeners always call the latest version
   // (avoids stale closure capturing old email/address/cart state)
-  const chargeTokenRef = useRef<(token: string, email?: string, addr?: typeof address) => Promise<void>>(async () => {});
+  const chargeTokenRef = useRef<(token: string, email?: string, addr?: typeof address, overrides?: { total?: number; shipMethod?: string; shipTotal?: number }) => Promise<void>>(async () => {});
+  // Apple Pay shipping state (populated by shippingcontactchanged before tokenize resolves)
+  const applePayShipMethodRef = useRef<string>("");
+  const applePayShippingTotalRef = useRef<number>(0);
+  const applePayTotalRef = useRef<number>(0);
 
   // Fetch WooCommerce country/state data on mount
   useEffect(() => {
@@ -463,7 +467,7 @@ export default function CheckoutPage() {
     async function mountExpressPay() {
       if (!p || !active) return;
 
-      const makeRequest = () => p.paymentRequest({
+      const makeGPayRequest = () => p.paymentRequest({
         countryCode: "US",
         currencyCode: "USD",
         total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
@@ -471,9 +475,17 @@ export default function CheckoutPage() {
         requestShippingContact: false,
       });
 
+      const makeAPayRequest = () => p.paymentRequest({
+        countryCode: "US",
+        currencyCode: "USD",
+        total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
+        requestBillingContact: false,
+        requestShippingContact: true,
+      });
+
       // ── Google Pay ──
       try {
-        const gp = await p.googlePay(makeRequest());
+        const gp = await p.googlePay(makeGPayRequest());
         if (!active) { gp.destroy(); return; }
         try {
           await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
@@ -505,10 +517,58 @@ export default function CheckoutPage() {
         console.info("[Square] Google Pay not available:", gpErr);
       }
 
-      // ── Apple Pay — tokenize() returns a Promise (unlike Google Pay which uses events) ──
+      // ── Apple Pay — tokenize() returns a Promise; shippingcontactchanged updates total ──
       try {
-        const ap = await p.applePay(makeRequest()) as any;
+        const ap = await p.applePay(makeAPayRequest()) as any;
         if (!active) { ap?.destroy?.(); return; }
+
+        // Reset Apple Pay shipping refs for this session
+        applePayShipMethodRef.current = "";
+        applePayShippingTotalRef.current = 0;
+        applePayTotalRef.current = 0;
+
+        ap.addEventListener("shippingcontactchanged", async (event: any) => {
+          const contact = event?.detail?.shippingContact ?? {};
+          try {
+            const updatedCart = await updateCustomerShippingAddress({
+              address1: "",
+              city: contact.locality ?? "",
+              state: contact.administrativeArea ?? "",
+              postcode: contact.postalCode ?? "",
+              country: (contact.countryCode ?? "US").toUpperCase(),
+            });
+            const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
+            if (rates.length === 0) {
+              await event.updateWith({ error: "ADDRESS_UNSERVICEABLE" });
+              return;
+            }
+            const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
+              parseFloat(a.cost) <= parseFloat(b.cost) ? a : b
+            );
+            applePayShipMethodRef.current = cheapest.id;
+            const shipAmt = parseFloat(cheapest.cost);
+            applePayShippingTotalRef.current = shipAmt;
+            const sub = parseFloat((updatedCart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
+            const disc = parseFloat((updatedCart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
+            const newTotal = Math.max(sub - disc + shipAmt, 0.01);
+            applePayTotalRef.current = newTotal;
+            const shippingOptions = rates.map((r: ShippingRate) => ({
+              id: r.id,
+              label: r.label,
+              amount: parseFloat(r.cost).toFixed(2),
+            }));
+            const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
+            if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
+            await event.updateWith({
+              shippingOptions,
+              total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" },
+            });
+          } catch (err) {
+            console.error("[APay] shippingcontactchanged error:", err);
+            await event.updateWith({ error: "ADDRESS_UNSERVICEABLE" });
+          }
+        });
+
         applePayRef.current = ap;
         setApplePayMounted(true);
       } catch (apErr) {
@@ -537,7 +597,7 @@ export default function CheckoutPage() {
     };
   }, [totalNum, paymentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function chargeToken(token: string, overrideEmail?: string, overrideAddress?: typeof address) {
+  async function chargeToken(token: string, overrideEmail?: string, overrideAddress?: typeof address, overrides?: { total?: number; shipMethod?: string; shipTotal?: number }) {
     setPayError(null);
     setPaying(true);
     try {
@@ -553,19 +613,22 @@ export default function CheckoutPage() {
       const effectiveCountry = overrideAddress
         ? (overrideAddress.country.length === 2 ? overrideAddress.country : (COUNTRY_CODES[overrideAddress.country] ?? overrideAddress.country))
         : (COUNTRY_CODES[address.country] ?? address.country);
+      const effectiveTotal      = overrides?.total     ?? totalNum;
+      const effectiveShipMethod = overrides?.shipMethod ?? shipMethod;
+      const effectiveShipTotal  = overrides?.shipTotal  ?? parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, ""));
 
       const res = await fetch("/api/square/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceId:       token,
-          amountCents:    Math.round(totalNum * 100),
+          amountCents:    Math.round(effectiveTotal * 100),
           buyerEmail:     effectiveEmail,
           billing:        { ...effectiveAddress, email: effectiveEmail, country: effectiveCountry },
           shipping:       { ...effectiveAddress, country: effectiveCountry },
           items:          wcItems,
-          shippingMethod: shipMethod,
-          shippingTotal:  parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, "")),
+          shippingMethod: effectiveShipMethod,
+          shippingTotal:  effectiveShipTotal,
           coupons:        (cart?.appliedCoupons ?? []).map((c) => c.code),
         }),
       });
@@ -771,17 +834,32 @@ export default function CheckoutPage() {
                     onClick={async () => {
                       const ap = applePayRef.current as any;
                       if (!ap) return;
-                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                        setPayError("Please enter a valid email address before paying with Apple Pay.");
-                        return;
-                      }
                       try {
                         const result: SqTokenResult & { details?: any } = await ap.tokenize();
                         if (!result || result.status !== "OK" || !result.token) {
                           setPayError(result?.errors?.[0]?.message ?? `Apple Pay failed (${result?.status})`);
                           return;
                         }
-                        await chargeTokenRef.current(result.token);
+                        // Extract contact info provided by Apple Pay
+                        const contact = result.details?.shippingContact ?? result.details?.contact ?? {};
+                        const apEmail = contact.emailAddress ?? email;
+                        const apAddress = {
+                          firstName: contact.givenName ?? address.firstName,
+                          lastName: contact.familyName ?? address.lastName,
+                          address1: (contact.addressLines ?? [])[0] ?? address.address1,
+                          address2: (contact.addressLines ?? [])[1] ?? address.address2,
+                          city: contact.locality ?? address.city,
+                          state: contact.administrativeArea ?? address.state,
+                          postcode: contact.postalCode ?? address.postcode,
+                          country: (contact.countryCode ?? address.country).toUpperCase(),
+                          phone: contact.phoneNumber ?? address.phone,
+                        };
+                        const overrides = {
+                          total: applePayTotalRef.current > 0 ? applePayTotalRef.current : undefined,
+                          shipMethod: applePayShipMethodRef.current || undefined,
+                          shipTotal: applePayShippingTotalRef.current > 0 ? applePayShippingTotalRef.current : undefined,
+                        };
+                        await chargeTokenRef.current(result.token, apEmail, apAddress, overrides);
                       } catch (err) {
                         setPayError("Apple Pay failed. Please try again.");
                         console.error("[Apple Pay] tokenize threw:", err);
