@@ -481,8 +481,10 @@ export default function CheckoutPage() {
         countryCode: "US",
         currencyCode: "USD",
         total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
-        requestBillingContact: false,
-        requestShippingContact: false,
+        // Need contact info — Google Pay returns the buyer email in the billing contact.
+        // Without this, buyerEmail is empty and Square rejects with "buyer_email_address is not valid".
+        requestBillingContact: true,
+        requestShippingContact: true,
       });
 
       const apSub = parseFloat((cart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
@@ -531,9 +533,10 @@ export default function CheckoutPage() {
               }
               // Extract email + shipping contact from the Google Pay result
               const details = r.details ?? {};
+              dbg(`details keys: ${Object.keys(details).join(",")}`);
               const billing = details?.card?.billing ?? details?.billing ?? {};
-              const shipping = details?.shipping?.contact ?? {};
-              const gpEmail = billing.email || shipping.email || email;
+              const shipping = details?.shipping?.contact ?? details?.shipping ?? {};
+              const gpEmail = billing.email || shipping.email || details?.email || r?.email || email;
               const gpAddress = {
                 firstName: billing.givenName ?? shipping.givenName ?? address.firstName,
                 lastName: billing.familyName ?? shipping.familyName ?? address.lastName,
