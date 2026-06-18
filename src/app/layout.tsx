@@ -43,9 +43,11 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_4815d651-07c5-4bff-8aac-5309b5a4e354.png?v=1777465275",
-        width: 1536,
-        height: 2752,
+        // Absolute URL to the Vercel app — metadataBase points at the WordPress
+        // backend (noirblanc.store), so a relative path would 404 there.
+        url: "https://noirblanc-store.vercel.app/og-image.jpg",
+        width: 1200,
+        height: 630,
         alt: "Noir & Blanc Luxury Handbags",
       },
     ],
@@ -55,7 +57,7 @@ export const metadata: Metadata = {
     title: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
     description:
       "Discover Noir & Blanc luxury handbags collection. Sign up for our newsletter to be the first to know about exclusive drops, special offers, and limited product launches. Elevate your style with our timeless, meticulously crafted handbags. Shop the latest trends at Noir & Blanc.",
-    images: ["https://noirblancnyc.com/cdn/shop/files/hf_20260419_074456_4815d651-07c5-4bff-8aac-5309b5a4e354.png?v=1777465275"],
+    images: ["https://noirblanc-store.vercel.app/og-image.jpg"],
   },
   icons: {
     icon: "/favicon.svg",
