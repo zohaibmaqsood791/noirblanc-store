@@ -268,7 +268,6 @@ export default function CheckoutPage() {
 
   const [email, setEmail] = useState("");
   const [emailNews, setEmailNews] = useState(false);
-  const [sccLog, setSccLog] = useState<string>("");
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
@@ -533,35 +532,18 @@ export default function CheckoutPage() {
 
         // shippingcontactchanged must be registered on the paymentRequest object
         apRequest.addEventListener("shippingcontactchanged", async (event: any) => {
-          // Discover full event structure
-          const evKeys: string[] = [];
-          try { for (const k in event) evKeys.push(`${k}:${typeof (event as any)[k]}`); } catch {}
-          const sc = event?.shippingContact ?? event?.detail?.shippingContact ?? event?.detail ?? {};
-          const updateFn = event?.updateWith ?? event?.detail?.updateWith ?? event?.resolve;
-          let log = `evKeys:[${evKeys.slice(0,8).join(",")}] sc:${JSON.stringify(sc).slice(0,80)} updateFn:${typeof updateFn} `;
-
-          const doUpdate = (payload: object) => {
-            if (typeof event?.updateWith === "function") return event.updateWith(payload);
-            if (typeof event?.detail?.updateWith === "function") return event.detail.updateWith(payload);
-            if (typeof event?.resolve === "function") return event.resolve(payload);
-            setSccLog(log + "NO_UPDATE_FN");
-          };
-
-          applePayContactRef.current = sc;
+          // Square SDK puts contact data directly on the event object (city, postalCode, countryCode)
+          // There is no updateWith — this event is read-only in Square's SDK.
+          // We silently update WooCommerce so the order gets the correct shipping method.
+          const city = event?.city ?? "";
+          const state = event?.administrativeArea ?? event?.state ?? "";
+          const postcode = event?.postalCode ?? "";
+          const country = (event?.countryCode ?? "US").toUpperCase();
+          applePayContactRef.current = event;
           try {
-            const city = event?.shippingContact?.locality ?? sc.locality ?? sc.city ?? "";
-            const state = event?.shippingContact?.administrativeArea ?? sc.administrativeArea ?? sc.state ?? "";
-            const postcode = event?.shippingContact?.postalCode ?? sc.postalCode ?? sc.zipCode ?? "";
-            const country = ((event?.shippingContact?.countryCode ?? sc.countryCode ?? sc.country ?? "US")).toUpperCase();
-
             const updatedCart = await updateCustomerShippingAddress({ address1: "", city, state, postcode, country });
             const rates = updatedCart?.availableShippingMethods?.[0]?.rates ?? [];
-            log += `rates:${rates.length} `;
-            if (rates.length === 0) {
-              setSccLog(log + "NO_RATES");
-              await doUpdate({ total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" }, shippingOptions: [] });
-              return;
-            }
+            if (rates.length === 0) return;
             const cheapest = rates.reduce((a: ShippingRate, b: ShippingRate) =>
               parseFloat(a.cost) <= parseFloat(b.cost) ? a : b
             );
@@ -571,18 +553,9 @@ export default function CheckoutPage() {
             applePayShippingTotalRef.current = shipAmt;
             const sub = parseFloat((updatedCart?.subtotal ?? "0").replace(/[^0-9.]/g, ""));
             const disc = parseFloat((updatedCart?.discountTotal ?? "0").replace(/[^0-9.]/g, ""));
-            const newTotal = Math.max(sub - disc + shipAmt, 0.01);
-            applePayTotalRef.current = newTotal;
-            const shippingOptions = rates.map((r: ShippingRate) => ({
-              id: r.id, label: r.label, amount: parseFloat(r.cost).toFixed(2),
-            }));
-            const idx = shippingOptions.findIndex((o: { id: string }) => o.id === cheapest.id);
-            if (idx > 0) shippingOptions.unshift(shippingOptions.splice(idx, 1)[0]);
-            setSccLog(log + `ship:${shipAmt} newTotal:${newTotal}`);
-            await doUpdate({ shippingOptions, total: { amount: newTotal.toFixed(2), label: "Noir & Blanc" } });
+            applePayTotalRef.current = Math.max(sub - disc + shipAmt, 0.01);
           } catch (err) {
-            setSccLog(log + `ERR:${String(err)}`);
-            await doUpdate({ total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" }, shippingOptions: [] });
+            console.error("[APay] shippingcontactchanged error:", err);
           }
         });
 
@@ -825,11 +798,6 @@ export default function CheckoutPage() {
           <div className="w-full max-w-[580px] px-4 sm:px-6 lg:pl-10 lg:pr-10">
           <div className="py-8 lg:py-10">
 
-            {sccLog && (
-              <div style={{ background:"#000",color:"#0f0",fontSize:11,padding:8,borderRadius:6,marginBottom:8,wordBreak:"break-all" }}>
-                <b>SCC:</b> {sccLog}
-              </div>
-            )}
             {/* Express checkout — ALWAYS render these divs so Square's iframe is never destroyed by React */}
             <div className={hasExpressCheckout ? "mb-6" : ""}>
               {hasExpressCheckout && (
