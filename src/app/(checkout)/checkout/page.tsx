@@ -505,23 +505,10 @@ export default function CheckoutPage() {
         console.info("[Square] Google Pay not available:", gpErr);
       }
 
-      // ── Apple Pay — always attempt independently of Google Pay result ──
+      // ── Apple Pay — tokenize() returns a Promise (unlike Google Pay which uses events) ──
       try {
         const ap = await p.applePay(makeRequest()) as any;
         if (!active) { ap?.destroy?.(); return; }
-        ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
-          const { status, token, errors } = e.detail;
-          alert(`[APay] status=${status} token=${token ? token.slice(0,20)+"…" : "NONE"} err=${errors?.[0]?.message ?? "none"}`);
-          if (status !== "OK" || !token) {
-            setPayError(errors?.[0]?.message ?? `Apple Pay failed (${status})`);
-            return;
-          }
-          try {
-            await chargeTokenRef.current(token);
-          } catch(err) {
-            alert(`[APay] chargeToken threw: ${String(err)}`);
-          }
-        });
         applePayRef.current = ap;
         setApplePayMounted(true);
       } catch (apErr) {
@@ -582,7 +569,6 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         const errMsg = data.error ?? "Payment failed. Please try again.";
-        alert(`[Square API error] ${errMsg} | HTTP ${res.status}`);
         setPayError(errMsg);
         setPaying(false);
         return;
@@ -779,7 +765,21 @@ export default function CheckoutPage() {
                   // @ts-ignore
                   <button
                     type="button"
-                    onClick={() => applePayRef.current?.tokenize?.()}
+                    onClick={async () => {
+                      const ap = applePayRef.current as any;
+                      if (!ap) return;
+                      try {
+                        const result: SqTokenResult = await ap.tokenize();
+                        if (result.status !== "OK" || !result.token) {
+                          setPayError(result.errors?.[0]?.message ?? `Apple Pay failed (${result.status})`);
+                          return;
+                        }
+                        await chargeTokenRef.current(result.token);
+                      } catch (err) {
+                        // User cancelled or Apple Pay unavailable — do nothing
+                        console.info("[APay] tokenize cancelled/failed:", err);
+                      }
+                    }}
                     className="apple-pay-button"
                     style={{ flex: googlePayMounted ? "1" : "0 0 240px" }}
                     aria-label="Buy with Apple Pay"
