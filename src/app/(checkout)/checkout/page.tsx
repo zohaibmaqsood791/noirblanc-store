@@ -292,8 +292,8 @@ export default function CheckoutPage() {
   const cardRef = useRef<SquareCard | null>(null);
   const googlePayRef = useRef<SqExpressButton | null>(null);
   const applePayRef = useRef<SqExpressButton | null>(null);
-  const googlePayRequestRef = useRef<SqPaymentRequest | null>(null);
-  const applePayRequestRef = useRef<SqPaymentRequest | null>(null);
+  const paymentsRef = useRef<SquarePayments | null>(null);
+  const [paymentsReady, setPaymentsReady] = useState(false);
   // Keep chargeToken ref so express-pay event listeners always call the latest version
   // (avoids stale closure capturing old email/address/cart state)
   const chargeTokenRef = useRef<(token: string) => Promise<void>>(async () => {});
@@ -409,12 +409,12 @@ export default function CheckoutPage() {
     document.head.appendChild(script);
   }, []);
 
-  /* Mount Square card + express checkout buttons */
+  /* Effect 1: Initialize Square payments instance + mount card form (once on SDK ready) */
   useEffect(() => {
     if (!sdkReady) return;
     let active = true;
 
-    async function mount() {
+    async function mountCard() {
       if (!window.Square || !active) return;
       try {
         const p = await window.Square.payments(
@@ -422,8 +422,9 @@ export default function CheckoutPage() {
           process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!
         );
         if (!active) return;
+        paymentsRef.current = p;
+        setPaymentsReady(true);
 
-        // ── Card form ──
         const card = await p.card({
           style: {
             ".input-container": { borderColor: "#D4D4D4", borderRadius: "5px" },
@@ -438,105 +439,100 @@ export default function CheckoutPage() {
         if (!active) { card.destroy(); return; }
         cardRef.current = card;
         setCardMounted(true);
-
-        // Guard: don't initialize express pay with a $0 amount — it will be rejected
-        if (totalNumRef.current <= 0) return;
-
-        // ── Separate paymentRequest objects for each button (can't share one instance) ──
-        const makeRequest = () => p.paymentRequest({
-          countryCode: "US",
-          currencyCode: "USD",
-          total: { amount: totalNumRef.current.toFixed(2), label: "Noir & Blanc" },
-          requestBillingContact: false,
-          requestShippingContact: false,
-        });
-
-        // ── Google Pay ──
-        try {
-          const gpRequest = makeRequest();
-          googlePayRequestRef.current = gpRequest;
-          const gp = await p.googlePay(gpRequest);
-          if (!active) { gp.destroy(); return; }
-          await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
-          if (!active) { gp.destroy(); return; }
-
-          // Square injects the visual button but does NOT auto-call tokenize on
-          // click — we must wire the click → tokenize() ourselves per Square docs.
-          const gpContainer = document.getElementById("sq-google-pay");
-          if (gpContainer) {
-            gpContainer.addEventListener("click", async () => {
-              try {
-                // Update with latest total (in case coupon was applied after mount)
-                (googlePayRequestRef.current as any)?.update?.({ total: { amount: totalNumRef.current.toFixed(2), label: "Noir & Blanc" } });
-                await gp.tokenize!();
-              } catch (err) {
-                console.error("[GPay] tokenize error:", err);
-              }
-            });
-          }
-
-          gp.addEventListener("ontokenization", async (e) => {
-            const { status, token, errors } = e.detail;
-            if (status !== "OK" || !token) {
-              const msg = errors?.[0]?.message ?? `Google Pay failed (${status})`;
-              console.error("[GPay] tokenization failed:", status, errors);
-              setPayError(msg);
-              return;
-            }
-            // Use ref so we always call the latest chargeToken with current form state
-            await chargeTokenRef.current(token);
-          });
-          googlePayRef.current = gp;
-          setGooglePayMounted(true);
-        } catch (gpErr) {
-          // Google Pay not available in this browser/env — silently hide
-          console.info("[Square] Google Pay not available:", gpErr);
-        }
-
-        // ── Apple Pay ──
-        // Apple Pay uses tokenize() on click — no attach() like Google Pay
-        try {
-          const apRequest = makeRequest();
-          applePayRequestRef.current = apRequest;
-          const ap = await p.applePay(apRequest) as any;
-          if (!active) { ap?.destroy?.(); return; }
-          ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
-            const { status, token, errors } = e.detail;
-            if (status !== "OK" || !token) {
-              const msg = errors?.[0]?.message ?? `Apple Pay failed (${status})`;
-              console.error("[APay] tokenization failed:", status, errors);
-              setPayError(msg);
-              return;
-            }
-            await chargeTokenRef.current(token);
-          });
-          applePayRef.current = ap;
-          setApplePayMounted(true);
-        } catch (apErr) {
-          // Apple Pay not available in this browser/device — silently hide
-          console.info("[Square] Apple Pay not available:", apErr);
-        }
-
       } catch (e) {
-        console.error("[Square] mount error:", e);
+        console.error("[Square] card mount error:", e);
       }
     }
 
-    mount();
+    mountCard();
     return () => {
       active = false;
       if (cardRef.current) { cardRef.current.destroy(); cardRef.current = null; }
+      setCardMounted(false);
+    };
+  }, [sdkReady]);
+
+  /* Effect 2: Mount / remount express pay buttons whenever the cart total changes.
+     This ensures Apple Pay and Google Pay always show the correct amount (incl. discounts).
+     The card form above is intentionally separate and stays mounted. */
+  useEffect(() => {
+    const p = paymentsRef.current;
+    if (!p || !paymentsReady || totalNum <= 0) return;
+    let active = true;
+
+    async function mountExpressPay() {
+      if (!p || !active) return;
+
+      const makeRequest = () => p.paymentRequest({
+        countryCode: "US",
+        currencyCode: "USD",
+        total: { amount: totalNum.toFixed(2), label: "Noir & Blanc" },
+        requestBillingContact: false,
+        requestShippingContact: false,
+      });
+
+      // ── Google Pay ──
+      try {
+        const gp = await p.googlePay(makeRequest());
+        if (!active) { gp.destroy(); return; }
+        await (gp.attach as any)("#sq-google-pay", { buttonType: "plain", buttonColor: "black", buttonSizeMode: "fill" });
+        if (!active) { gp.destroy(); return; }
+
+        const gpContainer = document.getElementById("sq-google-pay");
+        if (gpContainer) {
+          gpContainer.addEventListener("click", async () => {
+            try { await gp.tokenize!(); } catch (err) { console.error("[GPay] tokenize error:", err); }
+          });
+        }
+
+        gp.addEventListener("ontokenization", async (e) => {
+          const { status, token, errors } = e.detail;
+          if (status !== "OK" || !token) {
+            setPayError(errors?.[0]?.message ?? `Google Pay failed (${status})`);
+            return;
+          }
+          await chargeTokenRef.current(token);
+        });
+        googlePayRef.current = gp;
+        setGooglePayMounted(true);
+      } catch (gpErr) {
+        console.info("[Square] Google Pay not available:", gpErr);
+      }
+
+      // ── Apple Pay ──
+      try {
+        const ap = await p.applePay(makeRequest()) as any;
+        if (!active) { ap?.destroy?.(); return; }
+        ap.addEventListener("ontokenization", async (e: { detail: SqTokenResult }) => {
+          const { status, token, errors } = e.detail;
+          if (status !== "OK" || !token) {
+            setPayError(errors?.[0]?.message ?? `Apple Pay failed (${status})`);
+            return;
+          }
+          await chargeTokenRef.current(token);
+        });
+        applePayRef.current = ap;
+        setApplePayMounted(true);
+      } catch (apErr) {
+        console.info("[Square] Apple Pay not available:", apErr);
+      }
+    }
+
+    // Tear down old buttons first, then remount with fresh total
+    if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; }
+    if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; }
+    setGooglePayMounted(false);
+    setApplePayMounted(false);
+
+    mountExpressPay();
+    return () => {
+      active = false;
       if (googlePayRef.current) { googlePayRef.current.destroy(); googlePayRef.current = null; }
       if (applePayRef.current) { applePayRef.current.destroy(); applePayRef.current = null; }
-      googlePayRequestRef.current = null;
-      applePayRequestRef.current = null;
-      setCardMounted(false);
       setGooglePayMounted(false);
       setApplePayMounted(false);
     };
-  // Only remount when SDK becomes ready — NOT on totalNum changes (that destroys the form)
-  // totalNumRef.current is always up-to-date for express pay tokenization
-  }, [sdkReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [totalNum, paymentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function chargeToken(token: string) {
     setPayError(null);
@@ -765,11 +761,7 @@ export default function CheckoutPage() {
                   // @ts-ignore
                   <button
                     type="button"
-                    onClick={() => {
-                      // Refresh amount with latest total before showing Apple Pay sheet
-                      (applePayRequestRef.current as any)?.update?.({ total: { amount: totalNumRef.current.toFixed(2), label: "Noir & Blanc" } });
-                      applePayRef.current?.tokenize?.();
-                    }}
+                    onClick={() => applePayRef.current?.tokenize?.()}
                     className="apple-pay-button"
                     style={{ flex: googlePayMounted ? "1" : "0 0 240px" }}
                     aria-label="Buy with Apple Pay"
