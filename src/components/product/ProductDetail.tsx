@@ -722,11 +722,11 @@ function CustomerMarquee() {
    UGC VIDEO STRIP
 ═══════════════════════════════════════════════════════════════════════════ */
 const UGC_ITEMS = [
-  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-1.png" },
-  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-2.png" },
-  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-3.png" },
-  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-4.jpg" },
-  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-5.jpg" },
+  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-t1.png" },
+  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-t2.png" },
+  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-t3.png" },
+  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-t4.png" },
+  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-t5.png" },
 ];
 
 function UGCModal({ items, startIndex, onClose }: { items: typeof UGC_ITEMS; startIndex: number; onClose: () => void }) {
@@ -793,9 +793,10 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
       <video
         ref={videoRef}
         src={item.src}
-        loop muted playsInline preload="none"
+        loop muted playsInline preload="none" crossOrigin="anonymous"
         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
         style={{ opacity: playing ? 1 : 0 }}
+        onCanPlay={() => { videoRef.current?.play().then(() => setPlaying(true)).catch(() => {}); }}
       />
       <div className="absolute bottom-0 left-0 right-0 px-3 pt-10 pb-3 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none">
         <p className="text-white font-semibold text-[13px] leading-snug line-clamp-2 text-left">{item.label}</p>
