@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
 import { klIdentify, klTrack } from "@/lib/klaviyo";
+import { track } from "@vercel/analytics";
 import type { Address, ShippingRate } from "@/types";
 
 /* ─── Square SDK types ─────────────────────────────────────────────────── */
@@ -464,6 +465,15 @@ export default function CheckoutPage() {
   // valid email + items in the cart. This powers the abandoned-checkout flow.
   const startedCheckoutRef = useRef(false);
   const klEmailDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Vercel Web Analytics: "Reached Checkout" funnel step — fire once the
+  // checkout page has a real cart (mirrors Shopify's "Reached checkout").
+  const reachedCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (reachedCheckoutRef.current || items.length === 0 || totalNum <= 0) return;
+    reachedCheckoutRef.current = true;
+    track("Reached Checkout", { value: totalNum, items: items.length });
+  }, [items.length, totalNum]);
   // Stable signature so the effect doesn't re-run on every render (items is a fresh array each time)
   const itemsKey = items.map((i) => `${i.product.node.databaseId}:${i.quantity}`).join(",");
   useEffect(() => {

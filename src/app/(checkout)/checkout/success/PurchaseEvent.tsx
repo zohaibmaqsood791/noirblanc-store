@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { purchase as fbPurchase } from "@/lib/pixel";
 import { gtag, pushDataLayer, AW_ID, AW_CONVERSION_LABEL } from "@/components/GoogleTag";
+import { track } from "@vercel/analytics";
 
 type Item = { productId?: number; name: string; quantity: number; price: number };
 
@@ -61,6 +62,9 @@ export default function PurchaseEvent({
         currency:       "USD",
         transaction_id: orderId,
       });
+
+      // 5. Vercel Web Analytics: "Completed Checkout" funnel step
+      track("Completed Checkout", { value: total, orderId });
     };
 
     // Order data (with item IDs) loads from sessionStorage just after mount.

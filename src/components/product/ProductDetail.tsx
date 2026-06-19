@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/utils";
 import { addToCart, fetchCart } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
 import { klTrack } from "@/lib/klaviyo";
+import { track } from "@vercel/analytics";
 import { gtag, pushDataLayer, AW_ID } from "@/components/GoogleTag";
 import { useCartStore } from "@/store/cartStore";
 import type { Product, ProductVariation } from "@/types";
@@ -1290,6 +1291,9 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         URL: typeof window !== "undefined" ? window.location.href : `/products/${product.slug}`,
         ImageURL: product.image?.sourceUrl ?? null,
       });
+
+      // Vercel Web Analytics: funnel step
+      track("Added to Cart", { product: product.name, value: cartValue });
     } catch (e) {
       console.error(e);
     } finally {
