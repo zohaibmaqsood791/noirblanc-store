@@ -282,16 +282,49 @@ function CartUpsell({ items, onAdded }: { items: CartItem[]; onAdded: () => void
 
 /* ── EMPTY STATE ──────────────────────────────────────────────────────────── */
 function CartEmpty({ onClose }: { onClose: () => void }) {
+  const [recommendations, setRecommendations] = useState<UpsellProduct[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const prods = await fetchUpsellProducts("luma crossbody");
+      setRecommendations(prods.slice(0, 2));
+      setLoadingRecs(false);
+    })();
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center flex-1 p-8 text-center h-full">
+    <div className="flex flex-col items-center justify-center flex-1 p-4 text-center h-full">
       <div className="text-5xl mb-4">🛍️</div>
       <h3 className="font-heading text-lg font-semibold text-neutral-900 mb-2">Your cart is empty</h3>
       <p className="text-neutral-500 text-sm mb-6">Add some items to get started!</p>
       <Link href="/shop" onClick={onClose}
-        className="inline-block text-white font-semibold text-sm px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
+        className="inline-block text-white font-semibold text-sm px-6 py-3 rounded-lg hover:opacity-90 transition-opacity mb-8"
         style={{ backgroundColor: GREEN }}>
         Continue Shopping →
       </Link>
+
+      {/* Recommended Luma Bags */}
+      {!loadingRecs && recommendations.length > 0 && (
+        <div className="w-full border-t border-neutral-200 pt-6">
+          <p className="text-xs font-semibold text-neutral-600 mb-4 tracking-wide uppercase">Featured</p>
+          <div className="grid grid-cols-2 gap-3">
+            {recommendations.map((prod) => (
+              <Link key={prod.id} href={`/products/${prod.slug}`} onClick={onClose}
+                className="group p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 transition-all hover:shadow-sm">
+                {prod.image ? (
+                  <Image src={prod.image.sourceUrl} alt={prod.name} width={100} height={100}
+                    className="w-full aspect-square object-cover rounded-lg mb-2" />
+                ) : (
+                  <div className="w-full aspect-square bg-neutral-100 rounded-lg mb-2" />
+                )}
+                <p className="text-xs font-medium text-neutral-900 truncate">{prod.name}</p>
+                {prod.price && <p className="text-xs text-green-700 font-semibold mt-1">{prod.price}</p>}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
