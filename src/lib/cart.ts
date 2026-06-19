@@ -13,6 +13,7 @@ import type { Cart } from "@/types";
 
 export interface UpsellProduct {
   id: string;
+  databaseId: number;
   name: string;
   slug: string;
   price: string | null;
@@ -259,6 +260,7 @@ const UPSELL_QUERY = `
     products(first: 20, where: { search: $search, status: "publish" }) {
       nodes {
         id
+        databaseId
         name: title
         slug
         ... on SimpleProduct { price regularPrice image { sourceUrl altText } }
@@ -277,6 +279,7 @@ export async function fetchUpsellProducts(search: string): Promise<UpsellProduct
     const data = await client.request<{ products: { nodes: any[] } }>(UPSELL_QUERY, { search });
     return (data?.products?.nodes ?? []).map((p: any) => ({
       id: p.id,
+      databaseId: p.databaseId,
       name: p.name,
       slug: p.slug,
       price: p.price ?? null,

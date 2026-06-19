@@ -189,13 +189,15 @@ function UpsellCard({ product, onAdded }: { product: UpsellProduct; onAdded: () 
   const handleAdd = async () => {
     setAdding(true);
     const cart = await addToCart(
-      parseInt(product.id.replace(/\D/g, ""), 10),
+      product.databaseId,
       1,
       product.firstVariationId ?? undefined
     );
-    if (cart) setCart(cart);
     setAdding(false);
-    onAdded();
+    if (cart) {
+      setCart(cart);
+      onAdded();
+    }
   };
 
   return (
