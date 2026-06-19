@@ -301,10 +301,10 @@ function CartEmpty({ onClose }: { onClose: () => void }) {
   }, []);
 
   const handleQuickAdd = async (prod: UpsellProduct) => {
-    if (!prod.firstVariationId && !prod.databaseId) return;
+    if (!prod.databaseId) return;
     setAddingId(prod.id);
     try {
-      const updatedCart = await addToCart(prod.databaseId, 1, prod.firstVariationId);
+      const updatedCart = await addToCart(prod.databaseId, 1, prod.firstVariationId ?? undefined);
       if (updatedCart) setCart(updatedCart);
     } catch (e) {
       console.error("Add to cart failed:", e);
