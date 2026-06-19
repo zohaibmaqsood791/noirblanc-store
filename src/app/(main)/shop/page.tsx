@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { graphqlClient } from "@/lib/graphql/client";
-import { GET_PRODUCTS, GET_CATEGORIES } from "@/lib/graphql/queries";
+import { GET_PRODUCTS, GET_PRODUCTS_BY_SEARCH, GET_CATEGORIES } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
 import type { Product, Category } from "@/types";
 
 interface PageProps {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; q?: string }>;
 }
 
-async function getProducts(category?: string) {
+async function getProducts(category?: string, q?: string) {
   try {
+    if (q) {
+      const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
+        GET_PRODUCTS_BY_SEARCH,
+        { search: q, first: 48 }
+      );
+      return data.products.nodes;
+    }
     const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
       GET_PRODUCTS,
       { first: 48, category: category || null }
@@ -45,9 +52,9 @@ function shopOrder(p: Product): number {
 }
 
 export default async function ShopPage({ searchParams }: PageProps) {
-  const { category } = await searchParams;
+  const { category, q } = await searchParams;
   const [products, categories] = await Promise.all([
-    getProducts(category),
+    getProducts(category, q),
     getCategories(),
   ]);
 
@@ -55,7 +62,9 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const sortedProducts = [...products].sort((a, b) => shopOrder(a) - shopOrder(b));
 
   const currentCategory = categories.find((c) => c.slug === category);
-  const pageTitle = currentCategory?.name ?? "All Products";
+  const pageTitle = q
+    ? `Search results for “${q}”`
+    : currentCategory?.name ?? "All Products";
 
   return (
     <div style={{ backgroundColor: "#F8FAF8" }} className="min-h-screen">
