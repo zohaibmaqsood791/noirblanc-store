@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
           dateShipped: item.date_shipped ? new Date(item.date_shipped * 1000).toISOString() : null,
           lastEvent:     null as string | null,
           lastEventTime: null as string | null,
+          live:          false,
+          events:        [] as { description: string; location: string | null; time: string | null }[],
         };
       }
     }
@@ -84,6 +86,8 @@ export async function POST(req: NextRequest) {
         if (live.carrier) tracking.provider = live.carrier; // auto-detected carrier
         tracking.lastEvent = live.lastEvent;
         tracking.lastEventTime = live.lastEventTime;
+        tracking.live = true;
+        tracking.events = live.events;
       }
     }
 

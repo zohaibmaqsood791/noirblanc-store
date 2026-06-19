@@ -18,6 +18,8 @@ interface TrackingResult {
     dateShipped: string | null;
     lastEvent?: string | null;
     lastEventTime?: string | null;
+    live?: boolean;
+    events?: { description: string; location: string | null; time: string | null }[];
   } | null;
   shipping: {
     name: string;
@@ -184,18 +186,30 @@ export default function TrackOrderPage() {
                       </span>
                     </div>
                   )}
-                  {result.tracking.lastEvent && (
-                    <div className="pt-2 mt-1 border-t border-neutral-100">
-                      <span className="text-neutral-500 block mb-0.5">Latest update</span>
-                      <span className="text-neutral-800">{result.tracking.lastEvent}</span>
-                      {result.tracking.lastEventTime && (
-                        <span className="text-neutral-400 block text-xs mt-0.5">
-                          {new Date(result.tracking.lastEventTime).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
+
+                {/* Full tracking timeline (newest first) */}
+                {result.tracking.events && result.tracking.events.length > 0 ? (
+                  <div className="mt-5 pt-4 border-t border-neutral-100">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Tracking History</p>
+                    <ol className="relative border-l border-neutral-200 ml-1.5 space-y-4">
+                      {result.tracking.events.map((ev, i) => (
+                        <li key={i} className="ml-4">
+                          <span className={`absolute -left-[5px] w-2.5 h-2.5 rounded-full ${i === 0 ? "bg-[#538125]" : "bg-neutral-300"}`} />
+                          <p className={`text-sm ${i === 0 ? "text-neutral-900 font-medium" : "text-neutral-700"}`}>{ev.description}</p>
+                          <p className="text-xs text-neutral-400 mt-0.5">
+                            {ev.location ? `${ev.location} · ` : ""}
+                            {ev.time ? new Date(ev.time).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : result.tracking.live === false ? (
+                  <p className="mt-4 text-xs text-neutral-400">
+                    Live tracking is being set up for this shipment — detailed scans will appear here shortly. Use &ldquo;Track Package&rdquo; below for the latest from the carrier.
+                  </p>
+                ) : null}
                 {result.tracking.url ? (
                   <a
                     href={result.tracking.url}

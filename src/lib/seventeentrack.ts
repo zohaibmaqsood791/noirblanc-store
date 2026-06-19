@@ -14,12 +14,19 @@
 const API = "https://api.17track.net/track/v2.2";
 const KEY = process.env.SEVENTEEN_TRACK_API_KEY;
 
+export interface TrackEvent {
+  description: string;
+  location: string | null;
+  time: string | null; // ISO timestamp
+}
+
 export interface LiveTracking {
   carrier: string | null;       // human-readable carrier name (auto-detected)
   status: string | null;        // mapped display status (e.g. "In Transit")
   rawStatus: string | null;     // raw 17track status (e.g. "InTransit")
   lastEvent: string | null;     // latest scan description
   lastEventTime: string | null; // ISO timestamp of latest scan
+  events: TrackEvent[];         // full scan history, newest first
 }
 
 // 17track main status → our display label
@@ -64,14 +71,22 @@ export async function getLiveTracking(number: string): Promise<LiveTracking | nu
     const rawStatus: string | undefined = ti?.latest_status?.status;
 
     if (rawStatus && rawStatus !== "NotFound") {
-      const provider = ti?.tracking?.providers?.[0]?.provider;
+      const providerNode = ti?.tracking?.providers?.[0];
+      const provider = providerNode?.provider;
       const latestEvent = ti?.latest_event;
+      const events: TrackEvent[] = (providerNode?.events ?? []).map((e: any) => ({
+        description: e?.description ?? e?.stage ?? "",
+        location:    e?.location || null,
+        time:        e?.time_iso ?? e?.time_utc ?? null,
+      })).filter((e: TrackEvent) => e.description);
+
       return {
         carrier:       provider?.name ?? null,
         status:        mapStatus(rawStatus),
         rawStatus,
-        lastEvent:     latestEvent?.description ?? null,
-        lastEventTime: latestEvent?.time_iso ?? latestEvent?.time_utc ?? null,
+        lastEvent:     latestEvent?.description ?? events[0]?.description ?? null,
+        lastEventTime: latestEvent?.time_iso ?? latestEvent?.time_utc ?? events[0]?.time ?? null,
+        events,
       };
     }
 
@@ -82,4 +97,15 @@ export async function getLiveTracking(number: string): Promise<LiveTracking | nu
     console.error("17track getLiveTracking error:", e);
     return null;
   }
+}
+
+/** Raw gettrackinfo + register response — for debugging only. */
+export async function debugTracking(number: string) {
+  const info = await call("/gettrackinfo", [{ number }]);
+  const accepted = info?.data?.accepted?.[0];
+  let register: unknown = null;
+  if (!accepted?.track_info?.latest_status?.status) {
+    register = await call("/register", [{ number }]);
+  }
+  return { hasKey: !!KEY, gettrackinfo: info, register };
 }
