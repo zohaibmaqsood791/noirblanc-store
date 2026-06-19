@@ -5,11 +5,31 @@ import { Mail, MapPin, Clock } from "lucide-react";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.error || "Could not send your message. Please try again.");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -132,11 +152,15 @@ export default function ContactPage() {
                   className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors resize-none"
                 />
               </div>
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>
+              )}
               <button
                 type="submit"
-                className="w-full bg-black text-white text-sm font-semibold py-4 rounded-xl hover:bg-neutral-800 transition-colors tracking-wide"
+                disabled={loading}
+                className="w-full bg-black text-white text-sm font-semibold py-4 rounded-xl hover:bg-neutral-800 transition-colors tracking-wide disabled:opacity-60"
               >
-                Send Message
+                {loading ? "Sending…" : "Send Message"}
               </button>
             </form>
           )}
