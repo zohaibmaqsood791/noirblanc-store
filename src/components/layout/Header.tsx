@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Dialog, Transition } from "@headlessui/react";
 import { ShoppingBag, Menu, X, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -27,11 +28,11 @@ export default function Header() {
             {/* Mobile menu button — left */}
             <div className="flex items-center w-10 lg:hidden">
               <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                aria-label="Toggle menu"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open menu"
                 className="p-2"
               >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                <Menu size={20} />
               </button>
             </div>
 
@@ -80,32 +81,57 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile nav */}
-        {mobileOpen && (
-          <div className="lg:hidden border-t border-neutral-100 bg-white">
-            <nav className="flex flex-col px-4 py-4 gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm font-medium text-neutral-700 tracking-wide py-1"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="border-t border-neutral-100 pt-3 mt-1 flex flex-col gap-3">
-                <Link href="/track-order" className="text-sm font-medium text-neutral-700 tracking-wide py-1" onClick={() => setMobileOpen(false)}>
-                  Track Order
-                </Link>
-                <Link href="/account" className="text-sm font-medium text-neutral-700 tracking-wide py-1" onClick={() => setMobileOpen(false)}>
-                  My Account
-                </Link>
-              </div>
-            </nav>
-          </div>
-        )}
       </header>
+
+      {/* Mobile nav — slide-in drawer from the left */}
+      <Transition show={mobileOpen} as={Fragment}>
+        <Dialog onClose={() => setMobileOpen(false)} className="relative z-[60] lg:hidden">
+          {/* Backdrop */}
+          <Transition.Child as={Fragment}
+            enter="transition-opacity ease-in-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+            leave="transition-opacity ease-in-out duration-300" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+          </Transition.Child>
+
+          {/* Panel */}
+          <div className="fixed inset-0 overflow-hidden">
+            <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full">
+              <Transition.Child as={Fragment}
+                enter="transform transition ease-in-out duration-300" enterFrom="-translate-x-full" enterTo="translate-x-0"
+                leave="transform transition ease-in-out duration-300" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
+                <Dialog.Panel className="pointer-events-auto w-[80vw] max-w-xs h-full bg-white flex flex-col shadow-xl">
+                  <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-200">
+                    <Dialog.Title className="font-heading text-base tracking-wide text-neutral-800">Menu</Dialog.Title>
+                    <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="p-2 -mr-2">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <nav className="flex flex-col px-2 py-3 overflow-y-auto">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="text-sm font-medium text-neutral-700 tracking-wide px-2 py-3 rounded-lg hover:bg-neutral-50 transition-colors"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <div className="border-t border-neutral-100 mt-2 pt-2 flex flex-col">
+                      <Link href="/track-order" className="text-sm font-medium text-neutral-700 tracking-wide px-2 py-3 rounded-lg hover:bg-neutral-50 transition-colors" onClick={() => setMobileOpen(false)}>
+                        Track Order
+                      </Link>
+                      <Link href="/account" className="text-sm font-medium text-neutral-700 tracking-wide px-2 py-3 rounded-lg hover:bg-neutral-50 transition-colors" onClick={() => setMobileOpen(false)}>
+                        My Account
+                      </Link>
+                    </div>
+                  </nav>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
       <CartDrawer />
     </>
