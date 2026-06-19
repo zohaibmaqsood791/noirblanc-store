@@ -25,7 +25,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://noirblancnyc.com"),
+  metadataBase: new URL("https://www.noirblancny.com"),
+  // Headless store is a checkout destination behind the Shopify storefront.
+  // Keep it out of organic search so it doesn't cannibalize noirblancnyc.com
+  // (same products). Tracking (Google Ads/GA4/Pixel/Klaviyo) is unaffected.
+  robots: { index: false, follow: false },
   title: {
     template: "%s | Noir & Blanc",
     default: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
@@ -41,11 +45,11 @@ export const metadata: Metadata = {
     title: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
     description:
       "Discover Noir & Blanc luxury handbags collection. Sign up for our newsletter to be the first to know about exclusive drops, special offers, and limited product launches. Elevate your style with our timeless, meticulously crafted handbags. Shop the latest trends at Noir & Blanc.",
-    url: "https://noirblancnyc.com",
+    url: "https://www.noirblancny.com",
     type: "website",
     images: [
       {
-        // Relative path resolves against metadataBase (noirblancnyc.com), served by Vercel
+        // Relative path resolves against metadataBase (www.noirblancny.com), served by Vercel
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
