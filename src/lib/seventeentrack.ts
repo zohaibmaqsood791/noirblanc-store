@@ -98,14 +98,3 @@ export async function getLiveTracking(number: string): Promise<LiveTracking | nu
     return null;
   }
 }
-
-/** Raw gettrackinfo + register response — for debugging only. */
-export async function debugTracking(number: string) {
-  const info = await call("/gettrackinfo", [{ number }]);
-  const accepted = info?.data?.accepted?.[0];
-  let register: unknown = null;
-  if (!accepted?.track_info?.latest_status?.status) {
-    register = await call("/register", [{ number }]);
-  }
-  return { hasKey: !!KEY, gettrackinfo: info, register };
-}
