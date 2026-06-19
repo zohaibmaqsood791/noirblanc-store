@@ -284,43 +284,95 @@ function CartUpsell({ items, onAdded }: { items: CartItem[]; onAdded: () => void
 function CartEmpty({ onClose }: { onClose: () => void }) {
   const [recommendations, setRecommendations] = useState<UpsellProduct[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const { setCart } = useCartStore();
 
   useEffect(() => {
     (async () => {
-      const prods = await fetchUpsellProducts("luma crossbody");
-      setRecommendations(prods.slice(0, 2));
+      const searches = ["luma crossbody", "isla bag", "nora tote"];
+      const allProds: UpsellProduct[] = [];
+      for (const search of searches) {
+        const prods = await fetchUpsellProducts(search);
+        allProds.push(...prods);
+      }
+      setRecommendations(allProds.slice(0, 4));
       setLoadingRecs(false);
     })();
   }, []);
 
-  return (
-    <div className="flex flex-col items-center justify-center flex-1 p-4 text-center h-full">
-      <div className="text-5xl mb-4">🛍️</div>
-      <h3 className="font-heading text-lg font-semibold text-neutral-900 mb-2">Your cart is empty</h3>
-      <p className="text-neutral-500 text-sm mb-6">Add some items to get started!</p>
-      <Link href="/shop" onClick={onClose}
-        className="inline-block text-white font-semibold text-sm px-6 py-3 rounded-lg hover:opacity-90 transition-opacity mb-8"
-        style={{ backgroundColor: GREEN }}>
-        Continue Shopping →
-      </Link>
+  const handleQuickAdd = async (prod: UpsellProduct) => {
+    if (!prod.firstVariationId && !prod.databaseId) return;
+    setAddingId(prod.id);
+    try {
+      const updatedCart = await addToCart(prod.databaseId, 1, prod.firstVariationId);
+      if (updatedCart) setCart(updatedCart);
+    } catch (e) {
+      console.error("Add to cart failed:", e);
+    } finally {
+      setAddingId(null);
+    }
+  };
 
-      {/* Recommended Luma Bags */}
+  return (
+    <div className="flex flex-col flex-1 h-full overflow-y-auto">
+      {/* Header */}
+      <div className="text-center p-6 border-b border-neutral-100">
+        <h3 className="font-heading text-lg font-semibold text-neutral-900 mb-2">Your cart is empty</h3>
+        <p className="text-neutral-500 text-sm mb-4">Add some items to get started!</p>
+        <Link href="/shop" onClick={onClose}
+          className="inline-block text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: GREEN }}>
+          Continue Shopping →
+        </Link>
+      </div>
+
+      {/* Complete your look section */}
       {!loadingRecs && recommendations.length > 0 && (
-        <div className="w-full border-t border-neutral-200 pt-6">
-          <p className="text-xs font-semibold text-neutral-600 mb-4 tracking-wide uppercase">Featured</p>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="p-4 flex-1">
+          <p className="text-xs font-semibold text-neutral-700 mb-4 tracking-wide flex items-center gap-2">
+            <span style={{ color: "#D1384D" }}>❤️</span> Complete your look:
+          </p>
+          <div className="space-y-3">
             {recommendations.map((prod) => (
-              <Link key={prod.id} href={`/products/${prod.slug}`} onClick={onClose}
-                className="group p-3 rounded-xl border border-neutral-200 hover:border-neutral-400 transition-all hover:shadow-sm">
-                {prod.image ? (
-                  <Image src={prod.image.sourceUrl} alt={prod.name} width={100} height={100}
-                    className="w-full aspect-square object-cover rounded-lg mb-2" />
-                ) : (
-                  <div className="w-full aspect-square bg-neutral-100 rounded-lg mb-2" />
-                )}
-                <p className="text-xs font-medium text-neutral-900 truncate">{prod.name}</p>
-                {prod.price && <p className="text-xs text-green-700 font-semibold mt-1">{prod.price}</p>}
-              </Link>
+              <div key={prod.id} className="flex items-start gap-3 p-3 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-colors bg-white">
+                {/* Product image */}
+                <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-neutral-100">
+                  {prod.image ? (
+                    <Image src={prod.image.sourceUrl} alt={prod.name} width={64} height={64}
+                      className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-neutral-200" />
+                  )}
+                </div>
+
+                {/* Product details */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-900 truncate">{prod.name}</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <p className="text-sm font-semibold text-neutral-900">{prod.price}</p>
+                    {prod.regularPrice && prod.regularPrice !== prod.price && (
+                      <p className="text-xs text-neutral-500 line-through">{prod.regularPrice}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add button */}
+                <button
+                  onClick={() => handleQuickAdd(prod)}
+                  disabled={addingId === prod.id}
+                  className="flex-shrink-0 px-4 py-2 text-sm font-semibold border-2 rounded-lg transition-all"
+                  style={{
+                    borderColor: GREEN,
+                    color: GREEN,
+                    opacity: addingId === prod.id ? 0.6 : 1,
+                  }}>
+                  {addingId === prod.id ? (
+                    <span className="inline-block animate-spin">⟳</span>
+                  ) : (
+                    <span>+ ADD</span>
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         </div>
