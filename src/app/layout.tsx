@@ -74,7 +74,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <head>
-        {/* Google tag — init must be in <head> before gtag.js loads */}
+        {/* Google Analytics 4 + Google Ads */}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -85,12 +86,6 @@ gtag('config', '${GA4_ID}', { send_page_view: false, timezone: 'America/Los_Ange
 gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
             `.trim(),
           }}
-        />
-        <Script
-          id="gtag-lib"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
-          strategy="lazyOnload"
-          crossOrigin="anonymous"
         />
       </head>
       <body className="font-body antialiased bg-white text-neutral-900">
