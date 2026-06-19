@@ -90,20 +90,3 @@ html {
   background: #d4d4d4;
   border-radius: 2px;
 }
-
-/* Constrain Klaviyo "Get 10% Off" teaser button width on mobile */
-@media screen and (max-width: 750px) {
-  .needsclick.kl-teaser-XubguM {
-    max-width: 120px;
-  }
-}
-
-/* Temporarily hide ALL Klaviyo on-site UI — teasers, popups, banners, overlays.
-   (re-enable by removing this block, or unpublish the form in Klaviyo.) */
-[class*="kl-teaser"],
-div[class*="klaviyo-form-"],
-div[class*="kl-private-reset-css"],
-[data-testid="POPUP"],
-[aria-label*="POPUP" i] {
-  display: none !important;
-}
