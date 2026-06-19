@@ -911,7 +911,7 @@ export default function CheckoutPage() {
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="w-8" />
             <Link href="/" className="flex flex-col items-center">
-              <img src="/checkout-icons/nb-logo.svg" alt="Noir & Blanc" className="h-8 w-auto" />
+              <img src="/nb-logo.svg" alt="Noir & Blanc" className="h-8 w-auto" />
               <span className="text-[9px] tracking-[0.05em] text-[#777] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
             </Link>
             <Link href="/shop" className="relative">
@@ -931,7 +931,7 @@ export default function CheckoutPage() {
           <div className="border-t border-[#F0F0F0] px-4 py-2 flex items-center gap-3">
             <img src="/checkout-icons/avatars.svg" alt="Happy customers" className="h-7 w-auto flex-shrink-0" />
             <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-extrabold text-[#1a1a1a] leading-tight">18,347+ HAPPY CUSTOMERS</span>
+              <span className="text-[11px] font-semibold text-[#1a1a1a] leading-tight">18,347+ HAPPY CUSTOMERS</span>
               <div className="flex items-center gap-3 text-[10px] text-[#555] font-medium mt-0.5">
                 <span className="flex items-center gap-1"><img src="/checkout-icons/truck.svg" alt="" className="h-3 w-auto" />Fast Shipping</span>
                 <span className="flex items-center gap-1"><img src="/checkout-icons/security.svg" alt="" className="h-3 w-auto" />1-Year warranty</span>
@@ -944,7 +944,7 @@ export default function CheckoutPage() {
         <div className="hidden lg:flex w-full px-8 py-3 items-center justify-between">
           <div className="flex items-center justify-center gap-5 flex-1">
             <Link href="/" className="flex-shrink-0 flex flex-col items-center">
-              <img src="/checkout-icons/nb-logo.svg" alt="Noir & Blanc" className="h-10 w-auto" />
+              <img src="/nb-logo.svg" alt="Noir & Blanc" className="h-10 w-auto" />
               <span className="text-[10px] tracking-[0.06em] text-[#555] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
             </Link>
             <div className="w-px bg-[#1a1a1a] mx-1" style={{ height: 56 }} />
@@ -953,7 +953,7 @@ export default function CheckoutPage() {
               <img src="/checkout-icons/stars.svg" alt="5 stars" className="h-[14px] w-auto" />
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-[20px] lg:text-[26px] font-extrabold text-[#1a1a1a] leading-none tracking-tight">18,347+ HAPPY CUSTOMERS</span>
+              <span className="text-[20px] lg:text-[26px] font-semibold text-[#1a1a1a] leading-none tracking-tight">18,347+ HAPPY CUSTOMERS</span>
               <div className="flex items-center gap-5 text-[12px] text-[#333] font-medium">
                 <div className="flex items-center gap-1.5"><img src="/checkout-icons/truck.svg" alt="" className="h-[18px] w-auto" /><span>Fast Shipping</span></div>
                 <div className="flex items-center gap-1.5"><img src="/checkout-icons/security.svg" alt="" className="h-[18px] w-auto" /><span>1-Year warranty</span></div>

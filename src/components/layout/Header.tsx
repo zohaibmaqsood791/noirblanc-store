@@ -50,7 +50,7 @@ export default function Header() {
             {/* Logo — centered on mobile, left on desktop */}
             <Link href="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:mr-8 flex-shrink-0">
               <Image
-                src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
+                src="/nb-logo.svg"
                 alt="Noir & Blanc"
                 width={140}
                 height={40}
@@ -118,7 +118,7 @@ export default function Header() {
                     </button>
                     <Dialog.Title as={Link} href="/" onClick={() => setMobileOpen(false)} className="absolute left-1/2 -translate-x-1/2">
                       <Image
-                        src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
+                        src="/nb-logo.svg"
                         alt="Noir & Blanc"
                         width={130}
                         height={36}
