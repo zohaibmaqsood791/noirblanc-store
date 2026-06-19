@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -176,7 +176,19 @@ function SizeModal({ onClose }: { onClose: () => void }) {
 function ColorVariantSwatches({ variants, currentSlug }: { variants: Product[]; currentSlug: string }) {
   const router = useRouter();
   const [sizeOpen, setSizeOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  // Track which swatch was clicked so we can show the spinner on that one only.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
   if (variants.length <= 1) return null;
+
+  // Each color is a sibling product page, so switching is a full navigation.
+  // useTransition keeps isPending true until the new page is ready, giving us
+  // feedback to show the user it's loading.
+  const goTo = (slug: string) => {
+    if (slug === currentSlug || isPending) return;
+    setPendingSlug(slug);
+    startTransition(() => router.push(`/products/${slug}`));
+  };
 
   return (
     <div className="mb-4">
@@ -197,14 +209,20 @@ function ColorVariantSwatches({ variants, currentSlug }: { variants: Product[]; 
         <div className="flex gap-2 pb-2 pt-1">
           {variants.map((v) => {
             const active = v.slug === currentSlug;
+            const loading = isPending && pendingSlug === v.slug;
             return (
-              <button key={v.id} title={v.name} onClick={() => router.push(`/products/${v.slug}`)}
-                className={`relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${active ? "border-[#538125]" : "border-neutral-200 hover:border-neutral-400"}`}
+              <button key={v.id} title={v.name} onClick={() => goTo(v.slug)} disabled={isPending}
+                className={`relative flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${active ? "border-[#538125]" : "border-neutral-200 hover:border-neutral-400"} ${isPending ? "cursor-wait" : ""} ${isPending && !loading ? "opacity-50" : ""}`}
               >
                 {v.image ? (
                   <Image src={v.image.sourceUrl} alt={v.name} fill className="object-cover" sizes="80px" />
                 ) : (
                   <div className="w-full h-full bg-neutral-200" />
+                )}
+                {loading && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Loader2 size={22} className="animate-spin text-white" />
+                  </span>
                 )}
               </button>
             );
@@ -215,14 +233,20 @@ function ColorVariantSwatches({ variants, currentSlug }: { variants: Product[]; 
       <div className="hidden md:flex flex-wrap gap-2">
         {variants.map((v) => {
           const active = v.slug === currentSlug;
+          const loading = isPending && pendingSlug === v.slug;
           return (
-            <button key={v.id} title={v.name} onClick={() => router.push(`/products/${v.slug}`)}
-              className={`relative w-16 h-16 lg:w-[72px] lg:h-[72px] rounded-xl overflow-hidden border-2 transition-all duration-200 ${active ? "border-[#538125]" : "border-neutral-200 hover:border-[#538125]"}`}
+            <button key={v.id} title={v.name} onClick={() => goTo(v.slug)} disabled={isPending}
+              className={`relative w-16 h-16 lg:w-[72px] lg:h-[72px] rounded-xl overflow-hidden border-2 transition-all duration-200 ${active ? "border-[#538125]" : "border-neutral-200 hover:border-[#538125]"} ${isPending ? "cursor-wait" : ""} ${isPending && !loading ? "opacity-50" : ""}`}
             >
               {v.image ? (
                 <Image src={v.image.sourceUrl} alt={v.name} fill className="object-cover" sizes="72px" />
               ) : (
                 <div className="w-full h-full bg-neutral-200" />
+              )}
+              {loading && (
+                <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <Loader2 size={20} className="animate-spin text-white" />
+                </span>
               )}
             </button>
           );
