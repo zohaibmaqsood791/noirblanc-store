@@ -75,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <head>
         {/* Google Analytics 4 + Google Ads */}
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}></script>
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} crossOrigin="anonymous"></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `
