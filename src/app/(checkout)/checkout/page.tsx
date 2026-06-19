@@ -912,7 +912,6 @@ export default function CheckoutPage() {
             <div className="w-8" />
             <Link href="/" className="flex flex-col items-center">
               <img src="/nb-logo.svg" alt="Noir & Blanc" className="h-8 w-auto" />
-              <span className="text-[9px] tracking-[0.05em] text-[#777] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
             </Link>
             <Link href="/shop" className="relative">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.5">
@@ -945,7 +944,6 @@ export default function CheckoutPage() {
           <div className="flex items-center justify-center gap-5 flex-1">
             <Link href="/" className="flex-shrink-0 flex flex-col items-center">
               <img src="/nb-logo.svg" alt="Noir & Blanc" className="h-10 w-auto" />
-              <span className="text-[10px] tracking-[0.06em] text-[#555] mt-0.5 whitespace-nowrap">Where Elegance Meets Everyday</span>
             </Link>
             <div className="w-px bg-[#1a1a1a] mx-1" style={{ height: 56 }} />
             <div className="flex flex-col items-start gap-1.5">
