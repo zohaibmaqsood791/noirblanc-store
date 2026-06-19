@@ -135,6 +135,18 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  async redirects() {
+    return [
+      // Shopify collection handles that differ from the headless slugs.
+      // Lets the Shopify redirect snippet stay generic ({{ collection.handle }}).
+      {
+        source: "/collections/leather-wallets",
+        destination: "/collections/wallets",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {
