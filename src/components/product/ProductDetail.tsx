@@ -1180,6 +1180,9 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
       ImageURL: product.image?.sourceUrl ?? null,
       Categories: (product.productCategories?.nodes ?? []).map((c) => c.name),
     });
+
+    // Vercel Web Analytics: top-of-funnel step
+    track("Viewed Product", { product: product.name, value: priceNum });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.databaseId, selectedVariation?.databaseId]);
 
