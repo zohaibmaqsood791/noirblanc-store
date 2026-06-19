@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getLiveTracking } from "@/lib/seventeentrack";
 
 const WC_API = process.env.WC_API_URL || "https://noirblanc.store/wp-json/wc/v3";
 const CK = process.env.WC_CONSUMER_KEY!;
@@ -8,9 +9,12 @@ function wcAuth() {
   return "Basic " + Buffer.from(`${CK}:${CS}`).toString("base64");
 }
 
+// WooCommerce order status → display label. Note: "completed" only means the
+// order was fulfilled, NOT that the parcel was delivered — so it maps to
+// "Shipped". Real delivery status comes from 17track (live) when available.
 function mapStatus(status: string): string {
   const map: Record<string, string> = {
-    completed:  "Delivered",
+    completed:  "Shipped",
     processing: "Processing",
     "on-hold":  "On Hold",
     pending:    "Pending Payment",
@@ -64,13 +68,35 @@ export async function POST(req: NextRequest) {
           number:      item.tracking_number || "",
           url:         item.custom_tracking_link || "",
           dateShipped: item.date_shipped ? new Date(item.date_shipped * 1000).toISOString() : null,
+          lastEvent:     null as string | null,
+          lastEventTime: null as string | null,
         };
       }
     }
 
+    // Pull the REAL carrier + shipment status from 17track when we have a number.
+    // This corrects both the wrong imported carrier and the misleading WC status.
+    let liveStatus: string | null = null;
+    if (tracking?.number) {
+      const live = await getLiveTracking(tracking.number);
+      if (live) {
+        liveStatus = live.status;
+        if (live.carrier) tracking.provider = live.carrier; // auto-detected carrier
+        tracking.lastEvent = live.lastEvent;
+        tracking.lastEventTime = live.lastEventTime;
+      }
+    }
+
+    // Status priority: order-level states (cancelled/refunded/unpaid) win;
+    // otherwise prefer the live shipment status; otherwise fall back to WC.
+    const orderLevel = ["cancelled", "refunded", "pending", "on-hold"];
+    const status = orderLevel.includes(order.status)
+      ? mapStatus(order.status)
+      : (liveStatus ?? mapStatus(order.status));
+
     return NextResponse.json({
       orderNumber:  order.number,
-      status:       mapStatus(order.status),
+      status,
       rawStatus:    order.status,
       dateCreated:  order.date_created,
       total:        order.total,

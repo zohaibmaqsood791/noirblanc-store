@@ -16,6 +16,8 @@ interface TrackingResult {
     number: string;
     url: string;
     dateShipped: string | null;
+    lastEvent?: string | null;
+    lastEventTime?: string | null;
   } | null;
   shipping: {
     name: string;
@@ -28,23 +30,24 @@ interface TrackingResult {
   };
 }
 
+const IN_TRANSIT = ["Shipped", "In Transit", "Out for Delivery"];
+const PENDING    = ["Processing", "On Hold", "Pending Payment", "Pending"];
+const PROBLEM    = ["Cancelled", "Refunded", "Delivery Issue", "Exception", "Expired"];
+
 function StatusIcon({ status }: { status: string }) {
-  if (status === "Delivered")   return <CheckCircle className="text-green-600" size={22} />;
-  if (status === "Shipped")     return <Truck className="text-blue-600" size={22} />;
-  if (status === "Processing")  return <Clock className="text-yellow-600" size={22} />;
-  if (status === "Cancelled" || status === "Refunded") return <XCircle className="text-red-500" size={22} />;
+  if (status === "Delivered")        return <CheckCircle className="text-green-600" size={22} />;
+  if (IN_TRANSIT.includes(status))   return <Truck className="text-blue-600" size={22} />;
+  if (PENDING.includes(status))      return <Clock className="text-yellow-600" size={22} />;
+  if (PROBLEM.includes(status))      return <XCircle className="text-red-500" size={22} />;
   return <Package className="text-neutral-500" size={22} />;
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    Delivered:  "bg-green-100 text-green-800",
-    Shipped:    "bg-blue-100 text-blue-800",
-    Processing: "bg-yellow-100 text-yellow-800",
-    Cancelled:  "bg-red-100 text-red-800",
-    Refunded:   "bg-red-100 text-red-800",
-  };
-  const cls = colors[status] ?? "bg-neutral-100 text-neutral-700";
+  let cls = "bg-neutral-100 text-neutral-700";
+  if (status === "Delivered")      cls = "bg-green-100 text-green-800";
+  else if (IN_TRANSIT.includes(status)) cls = "bg-blue-100 text-blue-800";
+  else if (PENDING.includes(status))    cls = "bg-yellow-100 text-yellow-800";
+  else if (PROBLEM.includes(status))    cls = "bg-red-100 text-red-800";
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${cls}`}>
       {status}
@@ -179,6 +182,17 @@ export default function TrackOrderPage() {
                       <span className="text-neutral-800">
                         {new Date(result.tracking.dateShipped).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </span>
+                    </div>
+                  )}
+                  {result.tracking.lastEvent && (
+                    <div className="pt-2 mt-1 border-t border-neutral-100">
+                      <span className="text-neutral-500 block mb-0.5">Latest update</span>
+                      <span className="text-neutral-800">{result.tracking.lastEvent}</span>
+                      {result.tracking.lastEventTime && (
+                        <span className="text-neutral-400 block text-xs mt-0.5">
+                          {new Date(result.tracking.lastEventTime).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
