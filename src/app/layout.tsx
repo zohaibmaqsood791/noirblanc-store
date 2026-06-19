@@ -81,8 +81,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GA4_ID}', { send_page_view: false });
-gtag('config', '${AW_ID}');
+gtag('config', '${GA4_ID}', { send_page_view: false, timezone: 'America/Los_Angeles' });
+gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
             `.trim(),
           }}
         />
