@@ -49,7 +49,7 @@
 
 - [ ] Meta Business Settings → verify domain `noirblancnyc.com`
 - [ ] Commerce Manager → Catalog → Data Sources → add `https://noirblancnyc.com/merchant-feed.xml` (scheduled)
-- [ ] Reconnect the Meta Pixel `1404465483480876` to the catalog; confirm `content_ids` match feed IDs
+- [ ] Reconnect the Meta Pixel `724894499822999` to the catalog; confirm `content_ids` match feed IDs
 
 ## Phase 7 — Post-cutover hygiene
 
