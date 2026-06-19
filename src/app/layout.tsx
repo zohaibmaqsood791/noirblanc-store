@@ -89,7 +89,8 @@ gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
         <Script
           id="gtag-lib"
           src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
-          async
+          strategy="lazyOnload"
+          crossOrigin="anonymous"
         />
       </head>
       <body className="font-body antialiased bg-white text-neutral-900">
