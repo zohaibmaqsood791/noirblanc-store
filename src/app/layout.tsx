@@ -8,7 +8,7 @@ import StructuredData from "@/components/StructuredData";
 import Klaviyo from "@/components/Klaviyo";
 import { Analytics } from "@vercel/analytics/next";
 
-const GA4_ID = "G-ENMP7B7JKM";
+const GA4_ID = "GT-PHCH4QPC";
 const AW_ID  = "AW-17089443241";
 
 const raleway = Raleway({
