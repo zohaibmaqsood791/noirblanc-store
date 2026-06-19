@@ -1254,8 +1254,8 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         lastCart = await addToCart(productId, qty, variationId);
       }
 
-      const fullCart = await fetchCart();
-      if (fullCart) setCart(fullCart);
+      // Use lastCart instead of re-fetching (addToCart already returns updated cart with syncBagCoupons)
+      if (lastCart) setCart(lastCart);
       setAddedToCart(true);
       openCart();
       setTimeout(() => setAddedToCart(false), 3000);

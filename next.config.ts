@@ -106,9 +106,10 @@ const csp = [
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 2592000, // 30 days
+    minimumCacheTTL: 31536000, // 1 year
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [64, 80, 128, 256, 384],
+    imageSizes: [64, 80, 100, 118, 128, 256, 384],
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       { protocol: "https", hostname: "noirblancnyc.com" },
       { protocol: "https", hostname: "**.noirblancnyc.com" },

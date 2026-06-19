@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { fetchCart, updateCartItem, removeFromCart, addToCart, fetchUpsellProducts } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
@@ -62,16 +63,16 @@ function CartLineItem({
   return (
     <div className="flex items-start flex-row gap-3 sm:gap-4 self-stretch p-2 sm:p-4 rounded-2xl border border-[#F3F4F6] bg-white">
       {/* Image */}
-      <figure className="relative rounded-[14px] border border-[#F3F4F6] bg-[#F9FAFB] flex-shrink-0 w-[100px] sm:w-[118px]">
+      <figure className="relative rounded-[14px] border border-[#F3F4F6] bg-[#F9FAFB] flex-shrink-0 w-[100px] sm:w-[118px] overflow-hidden">
         <Link href={`/products/${product.node.slug}`}>
           {imgSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={imgSrc}
               alt={imgAlt}
               width={118}
               height={118}
-              className="w-[100px] sm:w-[118px] h-[100px] sm:h-[118px] object-contain object-center rounded-[14px]"
+              loading="lazy"
+              className="w-[100px] sm:w-[118px] h-[100px] sm:h-[118px] object-contain object-center"
             />
           ) : (
             <div className="w-[100px] sm:w-[118px] h-[100px] sm:h-[118px] bg-neutral-100 rounded-[14px]" />
