@@ -10,6 +10,7 @@ import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShipping
 import { klIdentify, klTrack } from "@/lib/klaviyo";
 import { logDebug } from "@/lib/debug-log";
 import { captureAttribution, getAttributionLabel } from "@/lib/attribution";
+import { gtag } from "@/components/GoogleTag";
 import { track } from "@vercel/analytics";
 import type { Address, ShippingRate } from "@/types";
 
