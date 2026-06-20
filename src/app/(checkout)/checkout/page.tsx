@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
 import { klIdentify, klTrack } from "@/lib/klaviyo";
 import { logDebug } from "@/lib/debug-log";
+import { captureAttribution, getAttributionLabel } from "@/lib/attribution";
 import { track } from "@vercel/analytics";
 import type { Address, ShippingRate } from "@/types";
 
@@ -469,12 +470,19 @@ export default function CheckoutPage() {
   const klEmailDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Vercel Web Analytics: "Reached Checkout" funnel step — fire once the
+  // Capture attribution on page load
+  useEffect(() => {
+    const attribution = captureAttribution();
+    logDebug("attribution_captured", "", { source: attribution.source, medium: attribution.medium, campaign: attribution.campaign });
+  }, []);
+
   // Log when valid email is first entered
   useEffect(() => {
     const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
     if (validEmail && !emailLoggedRef.current) {
       emailLoggedRef.current = true;
-      logDebug("email_entered", email);
+      const attribution = getAttributionLabel();
+      logDebug("email_entered", email, { attribution });
     }
   }, [email]);
 
