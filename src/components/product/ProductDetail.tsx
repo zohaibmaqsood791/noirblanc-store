@@ -318,7 +318,7 @@ function PairRow({
         {/* Image */}
         <div className="flex-shrink-0 w-[68px] h-[68px] rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
           {displayImg ? (
-            <img src={displayImg} alt={displayLabel} className="w-full h-full object-cover" />
+            <Image src={displayImg} alt={displayLabel} width={68} height={68} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-neutral-100" />
           )}
@@ -363,7 +363,7 @@ function PairRow({
                 }`}
               >
                 {v.image ? (
-                  <img src={v.image.sourceUrl} alt={colorVal} className="w-full h-full object-cover" />
+                  <Image src={v.image.sourceUrl} alt={colorVal} width={100} height={100} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-neutral-300 flex items-center justify-center">
                     <span className="text-[9px] text-neutral-600 text-center px-1 capitalize">{colorVal}</span>
@@ -389,7 +389,7 @@ function PairRow({
               }`}
             >
               {v.image ? (
-                <img src={v.image.sourceUrl} alt={v.name} className="w-full h-full object-cover" />
+                <Image src={v.image.sourceUrl} alt={v.name} width={100} height={100} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-neutral-300" />
               )}
