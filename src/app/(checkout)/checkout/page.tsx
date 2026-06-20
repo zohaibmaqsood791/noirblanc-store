@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
 import { klIdentify, klTrack } from "@/lib/klaviyo";
+import { logDebug } from "@/lib/debug-log";
 import { track } from "@vercel/analytics";
 import type { Address, ShippingRate } from "@/types";
 
@@ -363,6 +364,7 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const emailLoggedRef = useRef(false);
   const [emailNews, setEmailNews] = useState(false);
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
@@ -467,12 +469,22 @@ export default function CheckoutPage() {
   const klEmailDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Vercel Web Analytics: "Reached Checkout" funnel step — fire once the
+  // Log when valid email is first entered
+  useEffect(() => {
+    const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+    if (validEmail && !emailLoggedRef.current) {
+      emailLoggedRef.current = true;
+      logDebug("email_entered", email);
+    }
+  }, [email]);
+
   // checkout page has a real cart (mirrors Shopify's "Reached checkout").
   const reachedCheckoutRef = useRef(false);
   useEffect(() => {
     if (reachedCheckoutRef.current || items.length === 0 || totalNum <= 0) return;
     reachedCheckoutRef.current = true;
     track("Reached Checkout", { value: totalNum, items: items.length });
+    logDebug("reached_checkout", "", { value: totalNum, items: items.length });
   }, [items.length, totalNum]);
   // Stable signature so the effect doesn't re-run on every render (items is a fresh array each time)
   const itemsKey = items.map((i) => `${i.product.node.databaseId}:${i.quantity}`).join(",");
@@ -481,9 +493,13 @@ export default function CheckoutPage() {
     if (!validEmail || items.length === 0 || totalNum <= 0) return;
     if (klEmailDebounce.current) clearTimeout(klEmailDebounce.current);
     klEmailDebounce.current = setTimeout(() => {
+      logDebug("klIdentify_called", email, { firstName: address.firstName, lastName: address.lastName });
       klIdentify(email, { first_name: address.firstName || undefined, last_name: address.lastName || undefined });
+
       if (startedCheckoutRef.current) return;
       startedCheckoutRef.current = true;
+
+      logDebug("klTrack_started_checkout", email, { value: totalNum, itemCount: items.length });
       klTrack("Started Checkout", {
         $email: email,
         value: totalNum,
