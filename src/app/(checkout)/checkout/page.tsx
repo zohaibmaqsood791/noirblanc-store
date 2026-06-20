@@ -493,6 +493,19 @@ export default function CheckoutPage() {
     reachedCheckoutRef.current = true;
     track("Reached Checkout", { value: totalNum, items: items.length });
     logDebug("reached_checkout", "", { value: totalNum, items: items.length });
+
+    // GA4: begin_checkout event
+    pushDataLayer({
+      event: "begin_checkout",
+      value: totalNum,
+      currency: "USD",
+      items: items.map((item, i) => ({
+        item_id: String(item.product.node.databaseId),
+        item_name: item.product.node.name,
+        quantity: item.quantity,
+        price: parseFloat((item.product.node.price ?? "0").replace(/[^0-9.]/g, "")) || 0,
+      })),
+    });
   }, [items.length, totalNum]);
   // Stable signature so the effect doesn't re-run on every render (items is a fresh array each time)
   const itemsKey = items.map((i) => `${i.product.node.databaseId}:${i.quantity}`).join(",");
