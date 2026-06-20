@@ -206,9 +206,8 @@ function UpsellCard({ product, onAdded }: { product: UpsellProduct; onAdded: () 
       <Link href={`/products/${product.slug}`} className="flex-shrink-0">
         <div className="w-[68px] h-[68px] overflow-hidden rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB]">
           {product.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image.sourceUrl} alt={product.image.altText || product.name}
-              className="w-full h-full object-cover" loading="lazy" />
+            <Image src={product.image.sourceUrl} alt={product.image.altText || product.name}
+              width={68} height={68} loading="lazy" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-neutral-100" />
           )}
@@ -621,8 +620,7 @@ export default function CartDrawer() {
                             {/* Payment logos — bare, no card borders */}
                             <div className="flex flex-wrap gap-2.5 justify-center items-center">
                               {PAYMENT_LOGOS.map((logo) => (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img key={logo.alt} src={logo.src} alt={logo.alt} width={38} height={24}
+                                <Image key={logo.alt} src={logo.src} alt={logo.alt} width={38} height={24}
                                   className="object-contain object-center max-h-5 w-auto" />
                               ))}
                             </div>
