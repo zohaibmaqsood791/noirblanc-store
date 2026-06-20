@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export const GA4_ID              = "G-LCCZT27BDH";
+export const GA4_ID              = "GT-PHCH4QPC";
 export const AW_ID               = "AW-17089443241";
 export const AW_CONVERSION_LABEL = "AW-17089443241/VI21CKPCk8kaEKnr8NQ_";
 
