@@ -495,8 +495,7 @@ export default function CheckoutPage() {
     logDebug("reached_checkout", "", { value: totalNum, items: items.length });
 
     // GA4: begin_checkout event
-    pushDataLayer({
-      event: "begin_checkout",
+    gtag("event", "begin_checkout", {
       value: totalNum,
       currency: "USD",
       items: items.map((item, i) => ({

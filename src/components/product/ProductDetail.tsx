@@ -1156,7 +1156,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
       value: priceNum,
     });
 
-    // Google Ads + GA4: view_item
+    // Google Ads: view_item
     gtag("event", "view_item", {
       send_to: AW_ID,
       value: priceNum,
@@ -1164,8 +1164,9 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
       google_business_vertical: "retail",
       items: [{ id: String(selectedVariation?.databaseId ?? product.databaseId), google_business_vertical: "retail" }],
     });
-    pushDataLayer({
-      event: "view_item",
+
+    // GA4: view_item
+    gtag("event", "view_item", {
       value: priceNum,
       currency: "USD",
       items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: 1 }],
@@ -1268,7 +1269,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         value: priceNum * pairs.length,
       });
 
-      // Google Ads + GA4: add_to_cart
+      // Google Ads: add_to_cart
       const cartValue = priceNum * pairs.length;
       gtag("event", "add_to_cart", {
         send_to: AW_ID,
@@ -1277,8 +1278,9 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         google_business_vertical: "retail",
         items: [{ id: String(selectedVariation?.databaseId ?? product.databaseId), google_business_vertical: "retail" }],
       });
-      pushDataLayer({
-        event: "add_to_cart",
+
+      // GA4: add_to_cart
+      gtag("event", "add_to_cart", {
         value: cartValue,
         currency: "USD",
         items: [{ item_id: String(product.databaseId), item_name: product.name, price: priceNum, quantity: pairs.length }],

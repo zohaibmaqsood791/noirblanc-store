@@ -33,16 +33,15 @@ export default function PurchaseEvent({
       fbPurchase({ orderId, value: total, contentIds, numItems });
 
       // 2. GA4 purchase event
-      pushDataLayer({
-        event:          "purchase",
+      gtag("event", "purchase", {
         transaction_id: orderId,
-        value:          total,
-        currency:       "USD",
+        value: total,
+        currency: "USD",
         items: list.map((item, i) => ({
-          item_id:   String(item.productId ?? `item_${i}`),
+          item_id: String(item.productId ?? `item_${i}`),
           item_name: item.name,
-          quantity:  item.quantity,
-          price:     item.price,
+          quantity: item.quantity,
+          price: item.price,
         })),
       });
 
