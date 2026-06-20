@@ -520,9 +520,11 @@ function BundleSelector({
               {/* Product image */}
               <div className="relative w-[120px] sm:w-[140px] h-[90px] sm:h-[110px] -mt-2 mb-1">
                 {imgUrl ? (
-                  <img
+                  <Image
                     src={imgUrl}
                     alt={product.name}
+                    width={140}
+                    height={110}
                     loading="lazy"
                     className="absolute inset-0 w-full h-full object-contain mix-blend-multiply"
                   />
@@ -735,7 +737,7 @@ function CustomerMarquee() {
         <div className="flex gap-3" style={{ animation: "marquee 28s linear infinite", width: "max-content" }}>
           {track.map((src, i) => (
             <div key={i} className="flex-shrink-0 w-[120px] md:w-[160px] rounded-xl overflow-hidden bg-neutral-100" style={{ aspectRatio: "3/4" }}>
-              <img src={src} alt="Customer photo" className="w-full h-full object-cover" loading="lazy" />
+              <Image src={src} alt="Customer photo" width={160} height={213} className="w-full h-full object-cover" loading="lazy" />
             </div>
           ))}
         </div>
