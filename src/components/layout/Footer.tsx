@@ -7,7 +7,7 @@ const shopLinks = [
   { label: "New In", href: "/collections/new-in" },
   { label: "Crossbody Bags", href: "/collections/crossbody-bags" },
   { label: "Bag Straps", href: "/collections/bag-straps" },
-  { label: "Wallets", href: "/collections/wallets" },
+  { label: "Wallets", href: "/collections/leather-wallets" },
 ];
 
 const helpLinks = [
