@@ -35,7 +35,7 @@ export interface ProductVariation {
 export interface CartItem {
   key: string;
   product: {
-    node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image"> & {
+    node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image" | "productCategories"> & {
       regularPrice?: string;
       salePrice?: string;
     };
