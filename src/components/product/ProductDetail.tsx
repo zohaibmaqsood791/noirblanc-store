@@ -26,10 +26,12 @@ function Gallery({
   images,
   activeIdx,
   setActiveIdx,
+  isCrossbodyBag = false,
 }: {
   images: { sourceUrl: string; altText: string }[];
   activeIdx: number;
   setActiveIdx: (i: number) => void;
+  isCrossbodyBag?: boolean;
 }) {
   const prev = () => setActiveIdx((activeIdx - 1 + images.length) % images.length);
   const next = () => setActiveIdx((activeIdx + 1) % images.length);
@@ -43,6 +45,15 @@ function Gallery({
       <div className="md:hidden">
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="100vw" />
+          {isCrossbodyBag && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="text-center text-white">
+                <p className="text-lg font-bold leading-tight">2 FREE STRAPS & KEYRING</p>
+                <p className="text-sm font-semibold">Worth $75</p>
+                <p className="text-xs mt-1">With Every Bag</p>
+              </div>
+            </div>
+          )}
           {images.length > 1 && (
             <>
               <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full shadow flex items-center justify-center z-10">
@@ -71,6 +82,15 @@ function Gallery({
       <div className="hidden md:block">
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="50vw" />
+          {isCrossbodyBag && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="text-center text-white">
+                <p className="text-2xl font-bold leading-tight">2 FREE STRAPS & KEYRING</p>
+                <p className="text-lg font-semibold">Worth $75</p>
+                <p className="text-sm mt-1">With Every Bag</p>
+              </div>
+            </div>
+          )}
         </div>
         {images.length > 1 && (
           <div className="grid grid-cols-2 gap-3">
@@ -1046,6 +1066,8 @@ interface Props {
 
 export default function ProductDetail({ product, relatedProducts = [], colorVariants = [], reviews = [] }: Props) {
   const variations = product.variations?.nodes ?? [];
+  const categories = product.productCategories?.nodes ?? [];
+  const isCrossbodyBag = categories.some((cat) => cat.slug === "crossbody-bags");
 
   // Build attribute map for all WooCommerce variation attributes (color, size, etc.)
   const attributeMap: Record<string, string[]> = {};
@@ -1370,7 +1392,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
           </div>
 
           {/* LEFT — Gallery */}
-          <Gallery images={finalImages} activeIdx={activeIdx} setActiveIdx={setActiveIdx} />
+          <Gallery images={finalImages} activeIdx={activeIdx} setActiveIdx={setActiveIdx} isCrossbodyBag={isCrossbodyBag} />
 
           {/* RIGHT — Info panel */}
           <div className="rounded-xl md:pb-4 pt-0 md:pt-5 md:px-3 lg:px-5 md:sticky md:top-[80px]" style={{ backgroundColor: BG }}>
