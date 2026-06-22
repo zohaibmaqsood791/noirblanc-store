@@ -72,6 +72,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <head>
+        {/* Preload hero image so LCP fires early */}
+        <link rel="preload" as="image" href="/hero-beach.webp" fetchPriority="high" />
         {/* Google Analytics 4 + Google Ads */}
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} crossOrigin="anonymous"></script>
         <script

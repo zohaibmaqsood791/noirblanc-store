@@ -45,11 +45,13 @@ export default async function HomePage() {
       {/* ── Hero ── */}
       <section className="relative min-h-[420px] sm:min-h-[560px] lg:min-h-[680px] flex items-center justify-center text-center bg-neutral-900 overflow-hidden">
         <Image
-          src="/hero-beach.png"
+          src="/hero-beach.webp"
           alt="Noir & Blanc Hero"
           fill
           className="object-cover opacity-60"
           priority
+          fetchPriority="high"
+          sizes="100vw"
         />
         <div className="relative z-10 px-6 max-w-2xl mx-auto">
           <p className="text-[11px] tracking-[0.25em] uppercase font-medium text-amber-400 mb-4">Spring Edit</p>

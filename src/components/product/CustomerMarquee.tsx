@@ -1,13 +1,13 @@
-const IMAGES = [
-  { src: "/ugc/ugc-1.png",  alt: "Customer photo" },
-  { src: "/ugc/ugc-2.png",  alt: "Customer photo" },
-  { src: "/ugc/ugc-3.png",  alt: "Customer photo" },
-  { src: "/ugc/ugc-4.jpg",  alt: "Customer photo" },
-  { src: "/ugc/ugc-5.jpg",  alt: "Customer photo" },
-  { src: "/ugc/ugc-6.jpg",  alt: "Customer photo" },
-  { src: "/ugc/ugc-7.jpg",  alt: "Customer photo" },
-  { src: "/ugc/ugc-8.png",  alt: "Customer photo" },
-  { src: "/ugc/ugc-9.jpg",  alt: "Customer photo" },
+﻿const IMAGES = [
+  { src: "/ugc/ugc-1.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-2.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-3.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-4.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-5.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-6.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-7.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-8.webp",  alt: "Customer photo" },
+  { src: "/ugc/ugc-9.webp",  alt: "Customer photo" },
 ];
 
 // Duplicate for seamless loop

@@ -1,16 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 
 const UGC_ITEMS = [
-  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-t1.png" },
-  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-t2.png" },
-  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-t3.png" },
-  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-t4.png" },
-  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-t5.png" },
+  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-t1.webp" },
+  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-t2.webp" },
+  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-t3.webp" },
+  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me â€“ Weekend Bag", poster: "/ugc/ugc-t4.webp" },
+  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-ðŸ–¤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-t5.webp" },
 ];
 
-/* ── Single video card with IntersectionObserver autoplay ───────────────── */
+/* â”€â”€ Single video card with IntersectionObserver autoplay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -47,7 +47,7 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
       className="relative w-full group cursor-pointer overflow-hidden rounded-2xl bg-neutral-200 block"
       style={{ aspectRatio: "9/16" }}
     >
-      {/* Poster — shown until video loads */}
+      {/* Poster â€” shown until video loads */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={item.poster}
@@ -56,7 +56,7 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Video — autoplays muted when scrolled into view */}
+      {/* Video â€” autoplays muted when scrolled into view */}
       <video
         ref={videoRef}
         src={item.src}
@@ -77,7 +77,7 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
         </p>
       </div>
 
-      {/* Play icon — hidden when playing */}
+      {/* Play icon â€” hidden when playing */}
       <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none ${playing ? "opacity-0" : "opacity-100"}`}>
         <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center shadow-md">
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-neutral-900 ml-0.5">
@@ -89,7 +89,7 @@ function UGCCard({ item, onClick }: { item: typeof UGC_ITEMS[0]; onClick: () => 
   );
 }
 
-/* ── Full-screen modal ───────────────────────────────────────────────────── */
+/* â”€â”€ Full-screen modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function UGCModal({ startIndex, onClose }: { startIndex: number; onClose: () => void }) {
   const [idx, setIdx] = useState(startIndex);
   const [muted, setMuted] = useState(true);
@@ -154,7 +154,7 @@ function UGCModal({ startIndex, onClose }: { startIndex: number; onClose: () => 
   );
 }
 
-/* ── Section ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function UGCStrip() {
   const [open, setOpen] = useState(false);
   const [startIdx, setStartIdx] = useState(0);

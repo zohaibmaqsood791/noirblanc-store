@@ -744,9 +744,9 @@ function ShippingStrip() {
    CUSTOMER PHOTO MARQUEE
 ═══════════════════════════════════════════════════════════════════════════ */
 const UGC_IMAGES = [
-  "/ugc/ugc-1.png", "/ugc/ugc-2.png", "/ugc/ugc-3.png",
-  "/ugc/ugc-4.jpg", "/ugc/ugc-5.jpg", "/ugc/ugc-6.jpg",
-  "/ugc/ugc-7.jpg", "/ugc/ugc-8.png", "/ugc/ugc-9.jpg",
+  "/ugc/ugc-1.webp", "/ugc/ugc-2.webp", "/ugc/ugc-3.webp",
+  "/ugc/ugc-4.webp", "/ugc/ugc-5.webp", "/ugc/ugc-6.webp",
+  "/ugc/ugc-7.webp", "/ugc/ugc-8.webp", "/ugc/ugc-9.webp",
 ];
 
 function CustomerMarquee() {
@@ -777,11 +777,11 @@ function CustomerMarquee() {
    UGC VIDEO STRIP
 ═══════════════════════════════════════════════════════════════════════════ */
 const UGC_ITEMS = [
-  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-t1.png" },
-  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-t2.png" },
-  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-t3.png" },
-  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-t4.png" },
-  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-t5.png" },
+  { id: 1, src: "https://noirblanc.store/wp-content/uploads/2026/06/lv_0_20251026142226.mp4-Free-Online-Video-Compressor.mp4", label: "Your perfect plus-one", poster: "/ugc/ugc-t1.webp" },
+  { id: 2, src: "https://noirblanc.store/wp-content/uploads/2026/06/copy_638A8422-D04E-4484-8DC2-E1BC3778B957.mp4-Free-Online-Video-Compressor.mp4", label: "Elevate your everyday", poster: "/ugc/ugc-t2.webp" },
+  { id: 3, src: "https://noirblanc.store/wp-content/uploads/2026/06/WhatsApp-Video-2026-06-07-at-00.20.47.mp4", label: "Your work day just got better", poster: "/ugc/ugc-t3.webp" },
+  { id: 4, src: "https://noirblanc.store/wp-content/uploads/2026/06/Bag.mp4", label: "Pack with me – Weekend Bag", poster: "/ugc/ugc-t4.webp" },
+  { id: 5, src: "https://noirblanc.store/wp-content/uploads/2026/06/This-bag-is-my-everyday-kind-of-luxury-🖤Beautiful-leather-clean-details-and-two-interchangeabl.mp4", label: "Four new styles just dropped", poster: "/ugc/ugc-t5.webp" },
 ];
 
 function UGCModal({ items, startIndex, onClose }: { items: typeof UGC_ITEMS; startIndex: number; onClose: () => void }) {
@@ -1582,7 +1582,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
           {/* Lifestyle image — hidden on mobile */}
           <div className="relative rounded-2xl overflow-hidden aspect-[4/5] w-full hidden md:block">
             <img
-              src="/ugc/ugc-2.png"
+              src="/ugc/ugc-2.webp"
               alt="Noir & Blanc lifestyle"
               className="w-full h-full object-cover"
             />
