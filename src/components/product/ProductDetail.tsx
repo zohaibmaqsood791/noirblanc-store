@@ -188,6 +188,18 @@ function SizeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function extractColorName(fullName: string, variants: Product[]): string {
+  // Find longest common prefix among all variant names, then return what's left
+  const names = variants.map((v) => v.name);
+  if (names.length <= 1) return fullName;
+  let prefix = names[0];
+  for (const n of names) {
+    while (!n.startsWith(prefix)) prefix = prefix.slice(0, -1);
+  }
+  const color = fullName.slice(prefix.length).trim();
+  return color || fullName;
+}
+
 function ColorVariantSwatches({ variants, currentSlug }: { variants: Product[]; currentSlug: string }) {
   const router = useRouter();
   const [sizeOpen, setSizeOpen] = useState(false);
@@ -212,7 +224,7 @@ function ColorVariantSwatches({ variants, currentSlug }: { variants: Product[]; 
         <p className="text-sm font-medium" style={{ color: GREEN_DARK }}>
           Color:{" "}
           <span className="font-normal text-neutral-500">
-            {variants.find((v) => v.slug === currentSlug)?.name ?? ""}
+            {extractColorName(variants.find((v) => v.slug === currentSlug)?.name ?? "", variants)}
           </span>
         </p>
         <button onClick={() => setSizeOpen(true)} className="text-xs underline text-neutral-500 hover:text-black transition-colors">
