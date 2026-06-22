@@ -60,6 +60,9 @@ function CartLineItem({
     name: a.name.replace(/^pa_/i, ""),
   }));
 
+  const categories = product.node.productCategories?.nodes ?? [];
+  const isCrossbodyBag = categories.some((cat: any) => cat.slug === "crossbody-bags");
+
   return (
     <div className="flex items-start flex-row gap-3 sm:gap-4 self-stretch p-2 sm:p-4 rounded-2xl border border-[#F3F4F6] bg-white">
       {/* Image */}
@@ -123,6 +126,13 @@ function CartLineItem({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Crossbody bag includes text */}
+        {isCrossbodyBag && (
+          <p className="text-[#4E5B66] text-xs font-normal mt-1">
+            Includes Matching Straps & Keyring
+          </p>
         )}
 
         {/* Discount label */}

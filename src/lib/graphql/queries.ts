@@ -137,6 +137,7 @@ export const GET_CART = gql`
               image { sourceUrl altText }
               ... on SimpleProduct { price regularPrice salePrice }
               ... on VariableProduct { price regularPrice salePrice }
+              productCategories(first: 100) { nodes { slug } }
             }
           }
           variation {
@@ -185,6 +186,7 @@ export const CART_FIELDS = gql`
             image { sourceUrl altText }
             ... on SimpleProduct { price regularPrice salePrice }
             ... on VariableProduct { price regularPrice salePrice }
+            productCategories(first: 100) { nodes { slug } }
           }
         }
         variation {
