@@ -43,17 +43,14 @@ function Gallery({
     <div className="md:sticky md:top-[80px] md:h-fit">
       {/* MOBILE */}
       <div className="md:hidden">
+        {isCrossbodyBag && (
+          <div className="w-full bg-white border border-neutral-200 rounded-xl mb-2 py-3 px-4 text-center">
+            <p className="text-sm font-bold text-neutral-900 leading-tight">2 FREE STRAPS & KEYRING Worth $75</p>
+            <p className="text-sm font-semibold text-neutral-900">With Every Bag.</p>
+          </div>
+        )}
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="100vw" />
-          {isCrossbodyBag && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <div className="text-center text-white">
-                <p className="text-lg font-bold leading-tight">2 FREE STRAPS & KEYRING</p>
-                <p className="text-sm font-semibold">Worth $75</p>
-                <p className="text-xs mt-1">With Every Bag</p>
-              </div>
-            </div>
-          )}
           {images.length > 1 && (
             <>
               <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full shadow flex items-center justify-center z-10">
@@ -80,17 +77,14 @@ function Gallery({
 
       {/* DESKTOP */}
       <div className="hidden md:block">
+        {isCrossbodyBag && (
+          <div className="w-full bg-white border border-neutral-200 rounded-xl mb-3 py-3 px-4 text-center">
+            <p className="text-base font-bold text-neutral-900 leading-tight">2 FREE STRAPS & KEYRING Worth $75</p>
+            <p className="text-base font-semibold text-neutral-900">With Every Bag.</p>
+          </div>
+        )}
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="50vw" />
-          {isCrossbodyBag && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <div className="text-center text-white">
-                <p className="text-2xl font-bold leading-tight">2 FREE STRAPS & KEYRING</p>
-                <p className="text-lg font-semibold">Worth $75</p>
-                <p className="text-sm mt-1">With Every Bag</p>
-              </div>
-            </div>
-          )}
         </div>
         {images.length > 1 && (
           <div className="grid grid-cols-2 gap-3">
