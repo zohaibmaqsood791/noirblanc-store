@@ -45,7 +45,7 @@ function Gallery({
       <div className="md:hidden">
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="100vw" />
-          {isCrossbodyBag && (
+          {isCrossbodyBag && activeIdx === 0 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 rounded-xl px-5 py-3 text-center shadow-sm z-10 w-[75%]">
               <p className="text-sm font-bold text-neutral-900 leading-snug">2 FREE STRAPS & KEYRING Worth $75</p>
               <p className="text-sm font-semibold text-neutral-900">With Every Bag.</p>
@@ -79,7 +79,7 @@ function Gallery({
       <div className="hidden md:block">
         <div className="relative w-full overflow-hidden rounded-xl mb-3 bg-white" style={{ paddingBottom: "100%", height: 0 }}>
           <Image src={images[activeIdx].sourceUrl} alt={images[activeIdx].altText || "Product"} fill className="object-cover" priority sizes="50vw" />
-          {isCrossbodyBag && (
+          {isCrossbodyBag && activeIdx === 0 && (
             <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white/95 rounded-xl px-6 py-3 text-center shadow-sm z-10 w-[65%]">
               <p className="text-base font-bold text-neutral-900 leading-snug">2 FREE STRAPS & KEYRING Worth $75</p>
               <p className="text-base font-semibold text-neutral-900">With Every Bag.</p>
