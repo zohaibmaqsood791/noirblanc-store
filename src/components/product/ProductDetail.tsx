@@ -1070,7 +1070,23 @@ interface Props {
   reviews?: Review[];
 }
 
+const COLOR_ORDER = ["noir", "ivory"];
+
+function sortColorVariants(variants: Product[]): Product[] {
+  return [...variants].sort((a, b) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+    const idxA = COLOR_ORDER.findIndex((c) => nameA.endsWith(c));
+    const idxB = COLOR_ORDER.findIndex((c) => nameB.endsWith(c));
+    if (idxA === -1 && idxB === -1) return 0;
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
+}
+
 export default function ProductDetail({ product, relatedProducts = [], colorVariants = [], reviews = [] }: Props) {
+  const sortedColorVariants = sortColorVariants(colorVariants);
   const variations = product.variations?.nodes ?? [];
   const categories = product.productCategories?.nodes ?? [];
   const isCrossbodyBag = categories.some((cat) => cat.slug === "crossbody-bags");
@@ -1458,7 +1474,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
 
             {/* Color variant swatches (sibling products) */}
             {!bundleActive && (
-              <ColorVariantSwatches variants={colorVariants} currentSlug={product.slug} />
+              <ColorVariantSwatches variants={sortedColorVariants} currentSlug={product.slug} />
             )}
 
             {/* WooCommerce native variant attributes (color, size, etc.) */}
@@ -1501,7 +1517,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
             {/* Bundle selector — ABOVE the Add to Cart button */}
             <BundleSelector
               product={product}
-              colorVariants={colorVariants}
+              colorVariants={sortedColorVariants}
               wcVariations={variations}
               salePrice={displaySalePrice || displayPrice}
               regularPrice={displayRegularPrice || displaySalePrice || displayPrice}
