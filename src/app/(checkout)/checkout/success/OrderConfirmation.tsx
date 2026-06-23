@@ -78,6 +78,15 @@ export default function OrderConfirmation({
           quantity: item.quantity,
           price: parseFloat((item.total ?? "0").replace(/[^0-9.]/g, "")) / Math.max(1, item.quantity),
         }))}
+        user={order ? {
+          email:     order.email,
+          firstName: order.firstName,
+          lastName:  order.lastName,
+          city:      order.address?.city,
+          state:     order.address?.state,
+          zip:       order.address?.postcode,
+          country:   order.address?.country,
+        } : undefined}
       />
 
       {/* Header */}

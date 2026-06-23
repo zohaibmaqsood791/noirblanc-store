@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { purchase as fbPurchase } from "@/lib/pixel";
+import { purchase as fbPurchase, type UserData } from "@/lib/pixel";
 import { gtag, pushDataLayer, AW_ID, AW_CONVERSION_LABEL } from "@/components/GoogleTag";
 import { track } from "@vercel/analytics";
 import { trackFunnel } from "@/lib/funnel";
@@ -12,10 +12,12 @@ export default function PurchaseEvent({
   orderId,
   total,
   items,
+  user,
 }: {
   orderId: string;
   total: number;
   items?: Item[];
+  user?: UserData;
 }) {
   const fired = useRef(false);
 
@@ -33,8 +35,8 @@ export default function PurchaseEvent({
       // Dashboard funnel: completed purchase
       trackFunnel("purchased");
 
-      // 1. Meta Pixel purchase
-      fbPurchase({ orderId, value: total, contentIds, numItems });
+      // 1. Meta Pixel purchase (with hashed user data for Advanced Matching)
+      fbPurchase({ orderId, value: total, contentIds, numItems, user });
 
       // 2. GA4 purchase event
       gtag("event", "purchase", {
