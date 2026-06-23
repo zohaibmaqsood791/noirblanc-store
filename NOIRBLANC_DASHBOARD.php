@@ -7,6 +7,72 @@
 
 if (!defined('ABSPATH')) exit;
 
+/* ── Meta CAPI — server-side Purchase event (fires on every completed order) ── */
+add_action('woocommerce_payment_complete', 'nb_capi_purchase', 10, 1);
+add_action('woocommerce_order_status_completed', 'nb_capi_purchase', 10, 1);
+
+function nb_capi_purchase(int $order_id): void {
+    // Deduplicate: only fire once per order
+    if (get_post_meta($order_id, '_nb_capi_sent', true)) return;
+    update_post_meta($order_id, '_nb_capi_sent', '1');
+
+    $token = defined('NB_META_CAPI_TOKEN') ? NB_META_CAPI_TOKEN : get_option('nb_meta_capi_token', '');
+    $pixel = defined('NB_META_PIXEL_ID')   ? NB_META_PIXEL_ID   : get_option('nb_meta_pixel_id', '724894499822999');
+    if (!$token) return;
+
+    $order = wc_get_order($order_id);
+    if (!$order) return;
+
+    // Build hashed user data
+    function nb_sha256(string $v): string { return hash('sha256', strtolower(trim($v))); }
+
+    $user_data = array_filter([
+        'em' => $order->get_billing_email() ? nb_sha256($order->get_billing_email()) : null,
+        'fn' => $order->get_billing_first_name() ? nb_sha256($order->get_billing_first_name()) : null,
+        'ln' => $order->get_billing_last_name() ? nb_sha256($order->get_billing_last_name()) : null,
+        'ph' => $order->get_billing_phone() ? nb_sha256(preg_replace('/\D/', '', $order->get_billing_phone())) : null,
+        'ct' => $order->get_billing_city() ? nb_sha256($order->get_billing_city()) : null,
+        'st' => $order->get_billing_state() ? nb_sha256(strtolower($order->get_billing_state())) : null,
+        'zp' => $order->get_billing_postcode() ? nb_sha256($order->get_billing_postcode()) : null,
+        'country' => $order->get_billing_country() ? nb_sha256(strtolower($order->get_billing_country())) : null,
+    ]);
+
+    $content_ids = [];
+    $num_items   = 0;
+    foreach ($order->get_items() as $item) {
+        $content_ids[] = (string) $item->get_product_id();
+        $num_items     += $item->get_quantity();
+    }
+
+    $payload = [
+        'data' => [[
+            'event_name'       => 'Purchase',
+            'event_time'       => time(),
+            'event_id'         => 'wp-' . $order_id . '-' . time(),
+            'event_source_url' => 'https://www.noirblancnyc.com/checkout/success',
+            'action_source'    => 'website',
+            'user_data'        => $user_data,
+            'custom_data'      => [
+                'value'        => (float) $order->get_total(),
+                'currency'     => 'USD',
+                'content_type' => 'product',
+                'content_ids'  => $content_ids,
+                'num_items'    => $num_items,
+                'order_id'     => (string) $order_id,
+            ],
+        ]],
+    ];
+
+    wp_remote_post(
+        "https://graph.facebook.com/v19.0/{$pixel}/events?access_token={$token}",
+        [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body'    => wp_json_encode($payload),
+            'timeout' => 10,
+        ]
+    );
+}
+
 /* ── Admin menu ──────────────────────────────────────────────────────────── */
 add_action('admin_menu', function () {
     add_menu_page(
