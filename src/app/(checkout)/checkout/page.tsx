@@ -369,6 +369,7 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const emailLoggedRef = useRef(false);
   const [emailNews, setEmailNews] = useState(false);
+  const [honeypot, setHoneypot] = useState(""); // bot trap — real users never fill this
   const [address, setAddress] = useState<Address>({
     firstName: "", lastName: "", address1: "", address2: "",
     city: "", state: "", postcode: "", country: "United States",
@@ -838,6 +839,7 @@ export default function CheckoutPage() {
   }, [totalNum, paymentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function chargeToken(token: string, overrideEmail?: string, overrideAddress?: typeof address, overrides?: { total?: number; shipMethod?: string; shipTotal?: number }) {
+    if (honeypot) { setPaying(false); return; } // bot trap
     setPayError(null);
     setPaying(true);
     try {
@@ -924,6 +926,11 @@ export default function CheckoutPage() {
 
   async function handlePay() {
     if (!cardRef.current) return;
+    // Bot trap: honeypot field filled = bot, silently reject
+    if (honeypot) {
+      setPaying(false);
+      return;
+    }
     setPayError(null);
     setPaying(true);
     const result = await cardRef.current.tokenize();
@@ -1142,6 +1149,17 @@ export default function CheckoutPage() {
                   value={email}
                   onChange={setEmail}
                   autoComplete="email"
+                />
+                {/* Honeypot — hidden from real users, bots fill it */}
+                <input
+                  type="text"
+                  name="phone_number_backup"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  autoComplete="off"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", opacity: 0 }}
                 />
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
