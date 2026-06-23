@@ -8,8 +8,10 @@
 if (!defined('ABSPATH')) exit;
 
 /* ── Meta CAPI — server-side Purchase event (fires on every completed order) ── */
-add_action('woocommerce_payment_complete', 'nb_capi_purchase', 10, 1);
-add_action('woocommerce_order_status_completed', 'nb_capi_purchase', 10, 1);
+// Fire when payment is confirmed (order → Processing). Both hooks cover
+// different gateway paths; deduplication via _nb_capi_sent prevents double-fire.
+add_action('woocommerce_payment_complete',        'nb_capi_purchase', 10, 1);
+add_action('woocommerce_order_status_processing', 'nb_capi_purchase', 10, 1);
 
 function nb_capi_purchase(int $order_id): void {
     // Deduplicate: only fire once per order
