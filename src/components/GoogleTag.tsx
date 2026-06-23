@@ -20,6 +20,8 @@ export function pushDataLayer(event: Record<string, unknown>) {
   (window as any).dataLayer.push(event);
 }
 
+const SESSION_KEY = "nb_session_pinged";
+
 function PageViewTracker() {
   const pathname     = usePathname();
   const searchParams = useSearchParams();
@@ -29,6 +31,12 @@ function PageViewTracker() {
       page_location: window.location.href,
       page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ""),
     });
+
+    // Ping WordPress once per browser session to count unique sessions in dashboard
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      fetch("https://noirblanc.store/wp-json/nb/v1/session", { method: "POST" }).catch(() => {});
+    }
   }, [pathname, searchParams]);
 
   return null;
