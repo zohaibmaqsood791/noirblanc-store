@@ -46,6 +46,8 @@ function nb_capi_purchase(int $order_id): void {
         $num_items     += $item->get_quantity();
     }
 
+    $test_code = defined('NB_META_TEST_EVENT_CODE') ? NB_META_TEST_EVENT_CODE : '';
+
     $payload = [
         'data' => [[
             'event_name'       => 'Purchase',
@@ -64,6 +66,8 @@ function nb_capi_purchase(int $order_id): void {
             ],
         ]],
     ];
+
+    if ($test_code) $payload['test_event_code'] = $test_code;
 
     wp_remote_post(
         "https://graph.facebook.com/v19.0/{$pixel}/events?access_token={$token}",
