@@ -594,7 +594,7 @@ function nb_dashboard_page(): void {
                 </span>
                 <?php endif ?>
             </div>
-            <canvas id="nb-sales-chart" style="width:100%;height:220px;margin-top:12px"></canvas>
+            <div style="position:relative;height:220px;margin-top:12px"><canvas id="nb-sales-chart"></canvas></div>
             <div style="display:flex;justify-content:space-between;margin-top:6px" class="nb-muted">
                 <span><?= $period_label ?></span>
                 <span><?= $date_label ?></span>
@@ -638,7 +638,7 @@ function nb_dashboard_page(): void {
                 <span class="nb-big-num"><?= number_format($f_sessions) ?></span>
                 <span class="nb-muted" style="font-size:12px"><?= $period_label ?></span>
             </div>
-            <canvas id="nb-sessions-chart" style="width:100%;height:140px"></canvas>
+            <div style="position:relative;height:140px"><canvas id="nb-sessions-chart"></canvas></div>
         </div>
 
         <!-- Conversion rate over time -->
@@ -648,7 +648,7 @@ function nb_dashboard_page(): void {
                 <span class="nb-big-num"><?= $conv_rate ?>%</span>
                 <span class="nb-muted" style="font-size:12px"><?= $period_label ?></span>
             </div>
-            <canvas id="nb-conv-chart" style="width:100%;height:140px"></canvas>
+            <div style="position:relative;height:140px"><canvas id="nb-conv-chart"></canvas></div>
         </div>
 
         <!-- Total sales by product -->
@@ -721,7 +721,7 @@ function nb_dashboard_page(): void {
                 <span class="nb-big-num">US$<?= number_format($main_avg, 2) ?></span>
                 <span class="nb-muted" style="font-size:12px"><?= $period_label ?></span>
             </div>
-            <canvas id="nb-aov-chart" style="width:100%;height:160px"></canvas>
+            <div style="position:relative;height:160px"><canvas id="nb-aov-chart"></canvas></div>
         </div>
 
         <!-- Recent orders -->
@@ -761,76 +761,61 @@ function nb_dashboard_page(): void {
     <script>
     const NB_BLUE      = '#4169e1';
     const NB_BLUE_FILL = 'rgba(65,105,225,0.08)';
-    const NB_GRID      = '#f6f6f7';
-    const chartDefaults = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', titleFont: { size: 12 }, bodyFont: { size: 12 } } },
-        scales: {
-            x: { grid: { display: false }, ticks: { color: '#6d7175', font: { size: 11 } } },
-            y: { grid: { color: NB_GRID }, ticks: { color: '#6d7175', font: { size: 11 } } }
-        }
-    };
 
-    // Sales chart
-    new Chart(document.getElementById('nb-sales-chart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: <?= json_encode($chart['labels']) ?>,
-            datasets: [{
-                data: <?= json_encode($chart['revenues']) ?>,
-                borderColor: NB_BLUE, backgroundColor: NB_BLUE_FILL,
-                borderWidth: 2, fill: true, tension: 0.4,
-                pointRadius: 3, pointBackgroundColor: NB_BLUE,
-            }]
-        },
-        options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => 'US$' + v } } } }
-    });
+    function nbChart(id, labels, data, tickCb) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        new Chart(el.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: NB_BLUE,
+                    backgroundColor: NB_BLUE_FILL,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: labels.length <= 14 ? 3 : 0,
+                    pointBackgroundColor: NB_BLUE,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: '#1a1a1a', titleFont: { size: 12 }, bodyFont: { size: 12 } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#6d7175', font: { size: 11 }, maxTicksLimit: 8 } },
+                    y: { grid: { color: '#f0f0f0' }, ticks: { color: '#6d7175', font: { size: 11 }, callback: tickCb || (v => v) } }
+                }
+            }
+        });
+    }
 
-    // Sessions chart
-    new Chart(document.getElementById('nb-sessions-chart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: <?= json_encode($session_labels) ?>,
-            datasets: [{
-                data: <?= json_encode($session_data) ?>,
-                borderColor: NB_BLUE, backgroundColor: NB_BLUE_FILL,
-                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2,
-            }]
-        },
-        options: chartDefaults
-    });
+    const salesLabels  = <?= json_encode($chart['labels']) ?>;
+    const salesRevenue = <?= json_encode($chart['revenues']) ?>;
+    const salesOrders  = <?= json_encode($chart['orders']) ?>;
+    const sessLabels   = <?= json_encode($session_labels) ?>;
+    const sessData     = <?= json_encode($session_data) ?>;
+    const convRate     = <?= (float)$conv_rate ?>;
 
-    // Conversion rate chart (flat line based on overall rate)
-    const convLabels = <?= json_encode($session_labels) ?>;
-    new Chart(document.getElementById('nb-conv-chart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: convLabels,
-            datasets: [{
-                data: convLabels.map(() => <?= $conv_rate ?>),
-                borderColor: NB_BLUE, backgroundColor: NB_BLUE_FILL,
-                borderWidth: 2, fill: true, tension: 0, pointRadius: 0,
-            }]
-        },
-        options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' }, min: 0, suggestedMax: 5 } } }
-    });
+    <?php
+    $aov_data = [];
+    foreach ($chart['revenues'] as $i => $r) {
+        $o = $chart['orders'][$i] ?? 0;
+        $aov_data[] = $o > 0 ? round($r / $o, 2) : 0;
+    }
+    ?>
+    const aovData = <?= json_encode($aov_data) ?>;
 
-    // AOV chart
-    new Chart(document.getElementById('nb-aov-chart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: <?= json_encode($chart['labels']) ?>,
-            datasets: [{
-                data: <?= json_encode(array_map(fn($r,$o) => $o > 0 ? round($r/$o,2) : 0, $chart['revenues'], $chart['orders'])) ?>,
-                borderColor: NB_BLUE, backgroundColor: NB_BLUE_FILL,
-                borderWidth: 2, fill: true, tension: 0.4,
-                pointRadius: 3, pointBackgroundColor: NB_BLUE,
-            }]
-        },
-        options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => 'US$' + v } } } }
-    });
+    nbChart('nb-sales-chart',    salesLabels, salesRevenue, v => 'US$' + v);
+    nbChart('nb-sessions-chart', sessLabels,  sessData,     v => v);
+    nbChart('nb-conv-chart',     sessLabels,  sessLabels.map(() => convRate), v => v + '%');
+    nbChart('nb-aov-chart',      salesLabels, aovData,      v => 'US$' + v);
     </script>
     <?php
 }
