@@ -948,17 +948,7 @@ export default function CheckoutPage() {
   const hasExpressCheckout = googlePayMounted || applePayMounted;
 
   return (
-    <>{paying && (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-        <svg className="animate-spin h-10 w-10 text-[#1a1a1a] mb-4" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
-          <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-        </svg>
-        <p className="text-[#1a1a1a] text-[15px] font-semibold tracking-wide">Processing your payment…</p>
-        <p className="text-[#717171] text-[13px] mt-1">Please don't close this page</p>
-      </div>
-    )}
-    <div className="min-h-screen bg-white checkout-font" style={{ fontFamily: '"Poppins", sans-serif' }}>
+    <><div className="min-h-screen bg-white checkout-font" style={{ fontFamily: '"Poppins", sans-serif' }}>
 
       {/* ── Header ── */}
       <header className="border-b border-[#E0E0E0] bg-white">
