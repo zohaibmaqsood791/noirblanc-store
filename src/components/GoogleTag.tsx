@@ -2,6 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { trackFunnel } from "@/lib/funnel";
 
 export const GA4_ID              = "GT-PHCH4QPC";
 export const AW_ID               = "AW-17089443241";
@@ -35,7 +36,7 @@ function PageViewTracker() {
     // Ping WordPress once per browser session to count unique sessions in dashboard
     if (!sessionStorage.getItem(SESSION_KEY)) {
       sessionStorage.setItem(SESSION_KEY, "1");
-      fetch("https://noirblanc.store/wp-json/nb/v1/session", { method: "POST" }).catch(() => {});
+      trackFunnel("session");
     }
   }, [pathname, searchParams]);
 

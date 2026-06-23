@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShippingAddress, fetchCart } from "@/lib/cart";
 import { klIdentify, klTrack } from "@/lib/klaviyo";
+import { trackFunnel } from "@/lib/funnel";
 import { logDebug } from "@/lib/debug-log";
 import { captureAttribution, getAttributionLabel } from "@/lib/attribution";
 import { gtag } from "@/components/GoogleTag";
@@ -494,6 +495,7 @@ export default function CheckoutPage() {
     reachedCheckoutRef.current = true;
     track("Reached Checkout", { value: totalNum, items: items.length });
     logDebug("reached_checkout", "", { value: totalNum, items: items.length });
+    trackFunnel("checkout");
 
     // GA4: begin_checkout event
     gtag("event", "begin_checkout", {

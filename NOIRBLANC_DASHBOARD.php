@@ -47,26 +47,27 @@ function nb_funnel_range(string $event, int $days): int {
     return $sum;
 }
 
-// Hook: track add-to-cart (WooCommerce REST/session)
-add_action('woocommerce_add_to_cart', function () {
-    nb_funnel_increment('atc');
-});
+// All funnel events come from the headless Next.js frontend via REST.
+// WooCommerce hooks won't fire for Square checkout flow.
 
-// Hook: track reached checkout (order created = checkout page submitted)
-add_action('woocommerce_checkout_order_created', function () {
-    nb_funnel_increment('checkout');
-});
-
-// Hook: track completed purchase
-add_action('woocommerce_payment_complete', function () {
-    nb_funnel_increment('purchased');
-});
-add_action('woocommerce_order_status_processing', function () {
-    nb_funnel_increment('purchased');
-});
-
-// REST endpoint: track sessions from headless Next.js frontend
+// REST endpoint: track all funnel events from headless frontend
 add_action('rest_api_init', function () {
+    $valid_events = ['session', 'atc', 'checkout', 'purchased'];
+
+    register_rest_route('nb/v1', '/funnel', [
+        'methods'             => 'POST',
+        'callback'            => function (WP_REST_Request $req) use ($valid_events) {
+            $event = sanitize_text_field($req->get_param('event'));
+            if (!in_array($event, $valid_events, true)) {
+                return new WP_Error('invalid_event', 'Invalid event', ['status' => 400]);
+            }
+            nb_funnel_increment($event);
+            return ['ok' => true, 'event' => $event];
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Keep /session as alias for backwards compat
     register_rest_route('nb/v1', '/session', [
         'methods'             => 'POST',
         'callback'            => function () {

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { purchase as fbPurchase } from "@/lib/pixel";
 import { gtag, pushDataLayer, AW_ID, AW_CONVERSION_LABEL } from "@/components/GoogleTag";
 import { track } from "@vercel/analytics";
+import { trackFunnel } from "@/lib/funnel";
 
 type Item = { productId?: number; name: string; quantity: number; price: number };
 
@@ -28,6 +29,9 @@ export default function PurchaseEvent({
       const list = items ?? [];
       const contentIds = list.map(i => i.productId).filter((id): id is number => !!id);
       const numItems = list.reduce((s, i) => s + i.quantity, 0) || undefined;
+
+      // Dashboard funnel: completed purchase
+      trackFunnel("purchased");
 
       // 1. Meta Pixel purchase
       fbPurchase({ orderId, value: total, contentIds, numItems });
