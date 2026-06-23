@@ -1344,8 +1344,11 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
         ImageURL: product.image?.sourceUrl ?? null,
       });
 
-      // Dashboard funnel tracking
-      trackFunnel("atc");
+      // Dashboard funnel tracking — once per browser session
+      if (!sessionStorage.getItem('nb_atc_pinged')) {
+        sessionStorage.setItem('nb_atc_pinged', '1');
+        trackFunnel("atc");
+      }
 
       // Vercel Web Analytics: funnel step
       track("Added to Cart", { product: product.name, value: cartValue });

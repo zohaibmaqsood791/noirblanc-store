@@ -493,7 +493,9 @@ export default function CheckoutPage() {
   const reachedCheckoutRef = useRef(false);
   useEffect(() => {
     if (reachedCheckoutRef.current || items.length === 0 || totalNum <= 0) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('nb_checkout_pinged')) return;
     reachedCheckoutRef.current = true;
+    sessionStorage.setItem('nb_checkout_pinged', '1');
     track("Reached Checkout", { value: totalNum, items: items.length });
     logDebug("reached_checkout", "", { value: totalNum, items: items.length });
     trackFunnel("checkout");
