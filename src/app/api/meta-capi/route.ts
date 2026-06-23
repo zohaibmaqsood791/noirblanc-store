@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       event_name,
       event_id,
       event_source_url,
+      test_event_code,
       user = {},
       custom_data = {},
     } = body;
@@ -54,17 +55,18 @@ export async function POST(req: NextRequest) {
     // Remove undefined fields
     Object.keys(user_data).forEach(k => user_data[k] === undefined && delete user_data[k]);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       data: [{
         event_name,
-        event_time: Math.floor(Date.now() / 1000),
-        event_id:   event_id || undefined,
+        event_time:       Math.floor(Date.now() / 1000),
+        event_id:         event_id || undefined,
         event_source_url,
-        action_source: "website",
+        action_source:    "website",
         user_data,
-        custom_data: Object.keys(custom_data).length ? custom_data : undefined,
+        custom_data:      Object.keys(custom_data).length ? custom_data : undefined,
       }],
     };
+    if (test_event_code) payload.test_event_code = test_event_code;
 
     const res = await fetch(`${CAPI_URL}?access_token=${CAPI_TOKEN}`, {
       method:  "POST",

@@ -49,6 +49,12 @@ async function buildUserData(u: UserData): Promise<Record<string, string>> {
   return ud;
 }
 
+// Read test_event_code from meta tag (injected during testing only)
+function getTestEventCode(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  return (document.querySelector('meta[name="fb-test-event-code"]') as HTMLMetaElement)?.content || undefined;
+}
+
 // Fire browser pixel + server CAPI with matching event_id
 function sendCAPI(params: {
   event_name: string;
@@ -64,6 +70,7 @@ function sendCAPI(params: {
       event_name:       params.event_name,
       event_id:         params.event_id,
       event_source_url: window.location.href,
+      test_event_code:  getTestEventCode(),
       user:             params.user ?? {},
       custom_data:      params.custom_data ?? {},
     }),

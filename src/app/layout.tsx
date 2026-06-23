@@ -74,6 +74,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Preload hero image so LCP fires early */}
         <link rel="preload" as="image" href="/hero-beach.webp" fetchPriority="high" />
+        {/* Meta CAPI test event code — only present when META_TEST_EVENT_CODE env var is set */}
+        {process.env.META_TEST_EVENT_CODE && (
+          <meta name="fb-test-event-code" content={process.env.META_TEST_EVENT_CODE} />
+        )}
         {/* Google Analytics 4 + Google Ads */}
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} crossOrigin="anonymous"></script>
         <script

@@ -28,7 +28,7 @@ function injectPixel() {
   document.head.appendChild(script);
 
   fbq("init", PIXEL_ID);
-  fbq("track", "PageView");
+  // initial PageView fired by PixelPageView effect below with event_id
 }
 
 function PixelPageView() {
