@@ -1389,8 +1389,20 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
           <span>{product.name}</span>
         </p>
 
-        {/* Mobile: title + price above grid */}
+        {/* Mobile: social proof + title + price above grid */}
         <div className="lg:hidden mb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex -space-x-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
+                  <img src={`/avatars/avatar-${i}.webp`} alt="avatar" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+            <p className="text-[13px]" style={{ color: GREEN_DARK + "F2" }}>
+              Purchased more than <strong>2,437,825+</strong> times.
+            </p>
+          </div>
           <h1 className="font-heading text-xl font-semibold text-black mb-1">{product.name}</h1>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-2xl font-semibold text-red-600">{formatPrice(displaySalePrice || displayPrice)}</span>
@@ -1405,20 +1417,6 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
 
         {/* 2-col grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 xl:gap-10 items-start">
-
-          {/* Social proof — mobile only, above gallery */}
-          <div className="flex lg:hidden items-center gap-2 mb-2">
-            <div className="flex -space-x-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
-                  <img src={`/avatars/avatar-${i}.webp`} alt="avatar" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-            <p className="text-[13px]" style={{ color: GREEN_DARK + "F2" }}>
-              Purchased more than <strong>2,437,825+</strong> times.
-            </p>
-          </div>
 
           {/* LEFT — Gallery */}
           <Gallery images={finalImages} activeIdx={activeIdx} setActiveIdx={setActiveIdx} isCrossbodyBag={isCrossbodyBag} />
