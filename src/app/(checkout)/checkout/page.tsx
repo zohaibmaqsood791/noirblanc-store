@@ -366,6 +366,9 @@ export default function CheckoutPage() {
   const { cart, setCart } = useCartStore();
   const router = useRouter();
 
+  const BOT_DOMAINS = ['storebotmail', 'joonix.net', 'mailinator', 'guerrillamail', 'tempmail', 'throwam', 'yopmail', 'sharklasers', 'trashmail'];
+  const isBotEmail = (e: string) => BOT_DOMAINS.some(d => e.toLowerCase().includes(d));
+
   const [email, setEmail] = useState("");
   const emailLoggedRef = useRef(false);
   const [emailNews, setEmailNews] = useState(false);
@@ -482,7 +485,7 @@ export default function CheckoutPage() {
   // Log when valid email is first entered
   useEffect(() => {
     const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-    if (validEmail && !emailLoggedRef.current) {
+    if (validEmail && !emailLoggedRef.current && !isBotEmail(email)) {
       emailLoggedRef.current = true;
       const attribution = getAttributionLabel();
       logDebug("email_entered", email, { attribution });
@@ -516,7 +519,7 @@ export default function CheckoutPage() {
   const itemsKey = items.map((i) => `${i.product.node.databaseId}:${i.quantity}`).join(",");
   useEffect(() => {
     const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-    if (!validEmail || items.length === 0 || totalNum <= 0) return;
+    if (!validEmail || items.length === 0 || totalNum <= 0 || isBotEmail(email)) return;
     if (klEmailDebounce.current) clearTimeout(klEmailDebounce.current);
     klEmailDebounce.current = setTimeout(() => {
       logDebug("klIdentify_called", email, { firstName: address.firstName, lastName: address.lastName });
@@ -841,7 +844,7 @@ export default function CheckoutPage() {
   }, [totalNum, paymentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function chargeToken(token: string, overrideEmail?: string, overrideAddress?: typeof address, overrides?: { total?: number; shipMethod?: string; shipTotal?: number }) {
-    if (honeypot) { setPaying(false); return; } // bot trap
+    if (honeypot || isBotEmail(email)) { setPaying(false); return; } // bot trap
     setPayError(null);
     setPaying(true);
     try {
