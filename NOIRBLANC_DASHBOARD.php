@@ -18,7 +18,219 @@ add_action('admin_menu', function () {
         'dashicons-chart-line',
         3
     );
+    add_submenu_page(
+        'nb-dashboard',
+        'Event Logs',
+        'Event Logs',
+        'manage_woocommerce',
+        'nb-event-logs',
+        'nb_event_logs_page'
+    );
 });
+
+/* ── Debug log storage ───────────────────────────────────────────────────── */
+function nb_get_logs_table(): string {
+    global $wpdb;
+    return $wpdb->prefix . 'nb_event_logs';
+}
+
+function nb_create_logs_table(): void {
+    global $wpdb;
+    $table   = nb_get_logs_table();
+    $charset = $wpdb->get_charset_collate();
+    $sql     = "CREATE TABLE IF NOT EXISTS {$table} (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        event varchar(100) NOT NULL,
+        email varchar(255) DEFAULT '',
+        data longtext DEFAULT '',
+        url varchar(500) DEFAULT '',
+        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+    ) {$charset};";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+register_activation_hook(__FILE__, 'nb_create_logs_table');
+add_action('init', function () {
+    global $wpdb;
+    if (!$wpdb->get_var("SHOW TABLES LIKE '" . nb_get_logs_table() . "'")) {
+        nb_create_logs_table();
+    }
+});
+
+/* ── REST: receive debug logs from Next.js ───────────────────────────────── */
+add_action('rest_api_init', function () {
+    // This mirrors the existing /custom/v1/debug-logs endpoint but also writes to DB
+    register_rest_route('nb/v1', '/log', [
+        'methods'             => 'POST',
+        'callback'            => function (WP_REST_Request $req) {
+            global $wpdb;
+            $event = sanitize_text_field($req->get_param('event') ?? '');
+            $email = sanitize_email($req->get_param('email') ?? '');
+            $url   = esc_url_raw($req->get_param('url') ?? '');
+            $data  = wp_json_encode($req->get_param('data') ?? []);
+            $wpdb->insert(nb_get_logs_table(), compact('event', 'email', 'url', 'data'));
+            return ['ok' => true];
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+/* ── Event Logs page ─────────────────────────────────────────────────────── */
+function nb_event_logs_page(): void {
+    global $wpdb;
+    $table = nb_get_logs_table();
+
+    // Filters
+    $search     = isset($_GET['s'])     ? sanitize_text_field($_GET['s'])     : '';
+    $event_f    = isset($_GET['event']) ? sanitize_text_field($_GET['event']) : '';
+    $per_page   = 50;
+    $page       = max(1, (int)($_GET['paged'] ?? 1));
+    $offset     = ($page - 1) * $per_page;
+
+    $where  = 'WHERE 1=1';
+    $params = [];
+    if ($search) {
+        $where   .= ' AND (email LIKE %s OR event LIKE %s)';
+        $params[] = '%' . $wpdb->esc_like($search) . '%';
+        $params[] = '%' . $wpdb->esc_like($search) . '%';
+    }
+    if ($event_f) {
+        $where   .= ' AND event = %s';
+        $params[] = $event_f;
+    }
+
+    $sql_base  = "FROM {$table} {$where}";
+    $total     = $params
+        ? (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) {$sql_base}", ...$params))
+        : (int)$wpdb->get_var("SELECT COUNT(*) {$sql_base}");
+
+    $sql_rows  = "SELECT * {$sql_base} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+    $rows_params = array_merge($params, [$per_page, $offset]);
+    $logs      = $wpdb->get_results($wpdb->prepare($sql_rows, ...$rows_params));
+
+    $total_pages = max(1, ceil($total / $per_page));
+
+    // Distinct events for filter dropdown
+    $events = $wpdb->get_col("SELECT DISTINCT event FROM {$table} ORDER BY event");
+
+    // Event badge colors
+    $colors = [
+        'reached_checkout'       => ['#2271b1','#dbeafe'],
+        'email_entered'          => ['#2271b1','#dbeafe'],
+        'klIdentify_called'      => ['#7c3aed','#ede9fe'],
+        'klTrack_started_checkout'=>['#7c3aed','#ede9fe'],
+        'attribution_captured'   => ['#2ea44f','#d4f4e0'],
+        'klTrack_Added_to_Cart'  => ['#d97706','#fef3c7'],
+        'payment_success'        => ['#2ea44f','#d4f4e0'],
+        'payment_failed'         => ['#cf222e','#fee2e2'],
+    ];
+    $default_color = ['#555','#f3f4f6'];
+
+    $tz = new DateTimeZone('America/Los_Angeles');
+    ?>
+    <div class="wrap">
+    <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:20px">📋</span> Event Logs
+        <span style="font-size:12px;color:#888;font-weight:400"><?= $total ?> total events · Pacific Time</span>
+    </h1>
+
+    <!-- Filters -->
+    <form method="get" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <input type="hidden" name="page" value="nb-event-logs">
+        <input type="text" name="s" value="<?= esc_attr($search) ?>"
+               placeholder="Search email or event…"
+               style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-width:240px">
+        <select name="event" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+            <option value="">All events</option>
+            <?php foreach ($events as $e): ?>
+            <option value="<?= esc_attr($e) ?>" <?= selected($event_f, $e, false) ?>><?= esc_html($e) ?></option>
+            <?php endforeach ?>
+        </select>
+        <button type="submit" style="padding:6px 14px;background:#1d2327;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">Filter</button>
+        <?php if ($search || $event_f): ?>
+        <a href="?page=nb-event-logs" style="font-size:13px;color:#888">Clear</a>
+        <?php endif ?>
+        <span style="margin-left:auto;font-size:12px;color:#888">Page <?= $page ?> of <?= $total_pages ?></span>
+    </form>
+
+    <!-- Table -->
+    <div style="background:#fff;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+                <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb">
+                    <th style="text-align:left;padding:12px 16px;color:#6b7280;font-weight:500;width:160px">Date</th>
+                    <th style="text-align:left;padding:12px 16px;color:#6b7280;font-weight:500;width:160px">Time</th>
+                    <th style="text-align:left;padding:12px 16px;color:#6b7280;font-weight:500">Event</th>
+                    <th style="text-align:left;padding:12px 16px;color:#6b7280;font-weight:500">Email</th>
+                    <th style="text-align:left;padding:12px 16px;color:#6b7280;font-weight:500">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (empty($logs)): ?>
+                <tr>
+                    <td colspan="5" style="padding:40px;text-align:center;color:#aaa">
+                        No logs yet. Events will appear here as customers use the store.
+                    </td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($logs as $log):
+                    $dt  = new DateTime($log->created_at, new DateTimeZone('UTC'));
+                    $dt->setTimezone($tz);
+                    [$fc, $bc] = $colors[$log->event] ?? $default_color;
+                    $data_arr = json_decode($log->data ?? '', true) ?? [];
+                    $details  = '';
+                    if (!empty($data_arr)) {
+                        $parts = [];
+                        foreach ($data_arr as $k => $v) {
+                            if (is_scalar($v)) $parts[] = "<span style='color:#888'>{$k}:</span> " . esc_html($v);
+                        }
+                        $details = implode(' · ', array_slice($parts, 0, 3));
+                    }
+                ?>
+                <tr style="border-bottom:1px solid #f3f4f6;transition:background .1s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+                    <td style="padding:12px 16px;color:#6b7280;font-family:monospace;font-size:12px">
+                        <?= $dt->format('m-d') ?> <span style="color:#9ca3af"><?= $dt->format('H:i') ?></span>
+                    </td>
+                    <td style="padding:12px 16px;color:#9ca3af;font-family:monospace;font-size:12px">
+                        <?= $dt->format('H:i:s') ?>
+                    </td>
+                    <td style="padding:12px 16px">
+                        <span style="background:<?= $bc ?>;color:<?= $fc ?>;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">
+                            <?= esc_html($log->event) ?>
+                        </span>
+                    </td>
+                    <td style="padding:12px 16px;color:<?= $log->email ? '#2271b1' : '#ccc' ?>">
+                        <?= $log->email ? esc_html($log->email) : '—' ?>
+                    </td>
+                    <td style="padding:12px 16px;color:#6b7280;font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                        <?= $details ?: ($log->url ? esc_html($log->url) : '—') ?>
+                    </td>
+                </tr>
+                <?php endforeach ?>
+            <?php endif ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <?php if ($total_pages > 1): ?>
+    <div style="display:flex;gap:6px;margin-top:16px;justify-content:center">
+        <?php for ($i = 1; $i <= $total_pages; $i++):
+            $url = add_query_arg(['page' => 'nb-event-logs', 'paged' => $i, 's' => $search, 'event' => $event_f], admin_url('admin.php'));
+        ?>
+        <a href="<?= $url ?>"
+           style="padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;
+                  background:<?= $i === $page ? '#1d2327' : '#f0f0f1' ?>;
+                  color:<?= $i === $page ? '#fff' : '#1d2327' ?>">
+            <?= $i ?>
+        </a>
+        <?php endfor ?>
+    </div>
+    <?php endif ?>
+    </div>
+    <?php
+}
 
 /* ── Funnel tracking helpers ─────────────────────────────────────────────── */
 

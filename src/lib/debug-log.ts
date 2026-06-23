@@ -10,15 +10,12 @@ export async function logDebug(event: string, email?: string, data?: any) {
   // Log to console
   console.log(`[DEBUG] ${event}:`, logData);
 
-  // Send to WordPress (noirblanc.store)
+  // Send to WordPress dashboard logs table
   try {
-    await fetch('https://noirblanc.store/wp-json/custom/v1/debug-logs', {
+    await fetch('https://noirblanc.store/wp-json/nb/v1/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...logData,
-        store: 'headless-checkout',
-      }),
+      body: JSON.stringify(logData),
     });
   } catch (e) {
     console.error('Failed to send log to WordPress:', e);
