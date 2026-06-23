@@ -2,7 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { PIXEL_ID } from "@/lib/pixel";
+import { PIXEL_ID, pageView as pixelPageView } from "@/lib/pixel";
 
 function injectPixel() {
   if (typeof window === "undefined") return;
@@ -37,7 +37,7 @@ function PixelPageView() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof (window as any).fbq === "function") {
-      (window as any).fbq("track", "PageView");
+      pixelPageView(); // fires browser pixel + CAPI with matching event_id
     }
   }, [pathname, searchParams]);
 

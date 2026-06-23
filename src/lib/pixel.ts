@@ -13,7 +13,12 @@ export function fbq(...args: unknown[]) {
   }
 }
 
-// SHA-256 hash for Advanced Matching (Facebook requires hashed PII)
+// Unique event ID for browser+server deduplication
+function genEventId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+// SHA-256 hash for Advanced Matching
 async function sha256(value: string): Promise<string> {
   const normalized = value.trim().toLowerCase();
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
@@ -31,7 +36,6 @@ export interface UserData {
   country?: string;
 }
 
-// Build hashed user_data object for Advanced Matching
 async function buildUserData(u: UserData): Promise<Record<string, string>> {
   const ud: Record<string, string> = {};
   if (u.email)     ud.em      = await sha256(u.email);
@@ -45,8 +49,31 @@ async function buildUserData(u: UserData): Promise<Record<string, string>> {
   return ud;
 }
 
+// Fire browser pixel + server CAPI with matching event_id
+function sendCAPI(params: {
+  event_name: string;
+  event_id: string;
+  user?: UserData;
+  custom_data?: Record<string, unknown>;
+}) {
+  if (typeof window === "undefined") return;
+  fetch("/api/meta-capi", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({
+      event_name:       params.event_name,
+      event_id:         params.event_id,
+      event_source_url: window.location.href,
+      user:             params.user ?? {},
+      custom_data:      params.custom_data ?? {},
+    }),
+  }).catch(() => {});
+}
+
 export function pageView() {
-  fbq("track", "PageView");
+  const event_id = genEventId();
+  fbq("track", "PageView", {}, { eventID: event_id });
+  sendCAPI({ event_name: "PageView", event_id });
 }
 
 export function viewContent(opts: {
@@ -55,13 +82,16 @@ export function viewContent(opts: {
   value: number;
   currency?: string;
 }) {
-  fbq("track", "ViewContent", {
-    content_ids: [String(opts.contentId)],
+  const event_id = genEventId();
+  const data = {
+    content_ids:  [String(opts.contentId)],
     content_name: opts.contentName,
     content_type: "product",
-    value: opts.value,
-    currency: opts.currency ?? "USD",
-  });
+    value:        opts.value,
+    currency:     opts.currency ?? "USD",
+  };
+  fbq("track", "ViewContent", data, { eventID: event_id });
+  sendCAPI({ event_name: "ViewContent", event_id, custom_data: data });
 }
 
 export function addToCart(opts: {
@@ -71,18 +101,20 @@ export function addToCart(opts: {
   currency?: string;
   user?: UserData;
 }) {
-  const eventData = {
-    content_ids: [String(opts.contentId)],
+  const event_id = genEventId();
+  const data = {
+    content_ids:  [String(opts.contentId)],
     content_name: opts.contentName,
     content_type: "product",
-    value: opts.value,
-    currency: opts.currency ?? "USD",
+    value:        opts.value,
+    currency:     opts.currency ?? "USD",
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "AddToCart", eventData, { userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "AddToCart", data, { eventID: event_id, userData: ud }));
   } else {
-    fbq("track", "AddToCart", eventData);
+    fbq("track", "AddToCart", data, { eventID: event_id });
   }
+  sendCAPI({ event_name: "AddToCart", event_id, user: opts.user, custom_data: data });
 }
 
 export function initiateCheckout(opts: {
@@ -91,16 +123,18 @@ export function initiateCheckout(opts: {
   currency?: string;
   user?: UserData;
 }) {
-  const eventData = {
-    value: opts.value,
+  const event_id = genEventId();
+  const data = {
+    value:     opts.value,
     num_items: opts.numItems,
-    currency: opts.currency ?? "USD",
+    currency:  opts.currency ?? "USD",
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "InitiateCheckout", eventData, { userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "InitiateCheckout", data, { eventID: event_id, userData: ud }));
   } else {
-    fbq("track", "InitiateCheckout", eventData);
+    fbq("track", "InitiateCheckout", data, { eventID: event_id });
   }
+  sendCAPI({ event_name: "InitiateCheckout", event_id, user: opts.user, custom_data: data });
 }
 
 export function purchase(opts: {
@@ -111,17 +145,19 @@ export function purchase(opts: {
   numItems?: number;
   user?: UserData;
 }) {
-  const eventData = {
+  const event_id = genEventId();
+  const data = {
     content_type: "product",
-    content_ids: (opts.contentIds ?? []).map(String),
-    value: opts.value,
-    currency: opts.currency ?? "USD",
-    num_items: opts.numItems,
-    order_id: String(opts.orderId),
+    content_ids:  (opts.contentIds ?? []).map(String),
+    value:        opts.value,
+    currency:     opts.currency ?? "USD",
+    num_items:    opts.numItems,
+    order_id:     String(opts.orderId),
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "Purchase", eventData, { userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "Purchase", data, { eventID: event_id, userData: ud }));
   } else {
-    fbq("track", "Purchase", eventData);
+    fbq("track", "Purchase", data, { eventID: event_id });
   }
+  sendCAPI({ event_name: "Purchase", event_id, user: opts.user, custom_data: data });
 }
