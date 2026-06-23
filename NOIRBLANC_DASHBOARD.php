@@ -52,7 +52,7 @@ function nb_capi_purchase(int $order_id): void {
         'data' => [[
             'event_name'       => 'Purchase',
             'event_time'       => time(),
-            'event_id'         => 'wp-' . $order_id . '-' . time(),
+            'event_id'         => 'wp-' . $order_id,
             'event_source_url' => 'https://www.noirblancnyc.com/checkout/success',
             'action_source'    => 'website',
             'user_data'        => $user_data,

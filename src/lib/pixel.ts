@@ -152,7 +152,8 @@ export function purchase(opts: {
   numItems?: number;
   user?: UserData;
 }) {
-  const event_id = genEventId();
+  // Use same event_id format as WordPress so Meta deduplicates browser + server events
+  const event_id = `wp-${opts.orderId}`;
   const data = {
     content_type: "product",
     content_ids:  (opts.contentIds ?? []).map(String),
