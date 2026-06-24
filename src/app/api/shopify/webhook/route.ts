@@ -32,6 +32,15 @@ async function fetchDiscountDetails(gid: string) {
                   ... on DiscountPercentage { percentage }
                   ... on DiscountAmount { amount { amount } }
                 }
+                items {
+                  ... on AllDiscountItems { allItems }
+                  ... on DiscountCollections {
+                    collections(first: 10) { nodes { id title } }
+                  }
+                  ... on DiscountProducts {
+                    products(first: 10) { nodes { id title } }
+                  }
+                }
               }
               customerSelection {
                 ... on DiscountCustomerAll { allCustomers }
@@ -99,6 +108,26 @@ export async function POST(req: NextRequest) {
     emails.push(...selection.customers.map((c: { email: string }) => c.email));
   }
 
+  // Resolve Shopify collections → WooCommerce category IDs
+  const wcCategoryIds: number[] = [];
+  const items = discount.customerGets?.items;
+  if (items && !items.allItems) {
+    const collectionTitles: string[] = (items.collections?.nodes ?? []).map((c: { title: string }) => c.title);
+    if (collectionTitles.length) {
+      const auth2 = Buffer.from(`${WC_KEY}:${WC_SECRET}`).toString("base64");
+      const catRes = await fetch(`${WC_API_URL}/products/categories?per_page=100`, {
+        headers: { Authorization: `Basic ${auth2}` },
+      });
+      if (catRes.ok) {
+        const cats: { id: number; name: string }[] = await catRes.json();
+        for (const title of collectionTitles) {
+          const match = cats.find(c => c.name.toLowerCase() === title.toLowerCase());
+          if (match) wcCategoryIds.push(match.id);
+        }
+      }
+    }
+  }
+
   // Build WooCommerce coupon
   const couponPayload: Record<string, unknown> = {
     code: code.toLowerCase(),
@@ -111,6 +140,10 @@ export async function POST(req: NextRequest) {
 
   if (emails.length) {
     couponPayload.email_restrictions = emails;
+  }
+
+  if (wcCategoryIds.length) {
+    couponPayload.product_categories = wcCategoryIds;
   }
 
   const auth = Buffer.from(`${WC_KEY}:${WC_SECRET}`).toString("base64");
