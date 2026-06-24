@@ -76,6 +76,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {process.env.META_TEST_EVENT_CODE && (
           <meta name="fb-test-event-code" content={process.env.META_TEST_EVENT_CODE} />
         )}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} crossOrigin="anonymous"></script>
+        <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA4_ID}',{send_page_view:false,timezone:'America/Los_Angeles'});gtag('config','${AW_ID}',{timezone:'America/Los_Angeles'});` }} />
       </head>
       <body className="font-body antialiased bg-white text-neutral-900">
         <StructuredData />
@@ -84,18 +86,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Klaviyo />
         {children}
         <Analytics />
-        {/* GA4 + Google Ads — afterInteractive so they never block render */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">{`
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GA4_ID}', { send_page_view: false, timezone: 'America/Los_Angeles' });
-gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
-        `}</Script>
       </body>
     </html>
   );

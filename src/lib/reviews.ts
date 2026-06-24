@@ -14,6 +14,7 @@ export async function fetchReviews(): Promise<Review[]> {
   try {
     const res = await fetch(`${WC_BASE}/reviews`, {
       next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(1500),
     });
     if (!res.ok) return [];
     return res.json();

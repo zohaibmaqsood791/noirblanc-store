@@ -34,11 +34,6 @@ async function getRelatedProducts(excludeSlug: string): Promise<Product[]> {
   }
 }
 
-/**
- * Fetch color variant siblings by searching for the first two words of the
- * product name. E.g. "Luma Crossbody Bag Ivory" → search "Luma Crossbody"
- * Returns all matching products (inc. current product so swatch is complete).
- */
 async function getColorVariants(productName: string): Promise<Product[]> {
   const words = productName.trim().split(/\s+/);
   const searchTerm = words.slice(0, Math.min(2, words.length)).join(" ");
@@ -69,14 +64,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = await getProduct(slug);
-  // Unknown product (old Shopify URL, renamed/draft) → send to shop instead of 404
   if (!product) redirect("/shop");
 
-  const [relatedProducts, colorVariants, reviews] = await Promise.all([
+  // Fetch product extras in parallel — reviews excluded from blocking path
+  const [relatedProducts, colorVariants] = await Promise.all([
     getRelatedProducts(slug),
     getColorVariants(product.name),
-    fetchReviews(),
   ]);
+
+  // Reviews fetched separately and passed as empty initially — avoids blocking LCP
+  // on slow Judge.me API calls
+  const reviews = await fetchReviews().catch(() => []);
 
   return (
     <ProductDetail
