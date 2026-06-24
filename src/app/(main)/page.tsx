@@ -1,5 +1,6 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GET_PRODUCTS, GET_PRODUCTS_BY_SEARCH } from "@/lib/graphql/queries";
 import ProductCard from "@/components/product/ProductCard";
@@ -7,7 +8,6 @@ import Carousel from "@/components/home/Carousel";
 import UGCStrip from "@/components/home/UGCStrip";
 import type { Product } from "@/types";
 
-/* ─── Data ──────────────────────────────────────────────────────────────── */
 async function getProducts(first = 8, category?: string): Promise<Product[]> {
   try {
     const data = await graphqlClient.request<{ products: { nodes: Product[] } }>(
@@ -26,23 +26,114 @@ async function getLumaProducts(): Promise<Product[]> {
   } catch { return []; }
 }
 
-/* ─── Page ──────────────────────────────────────────────────────────────── */
-export default async function HomePage() {
-  const [allProducts, lumaProducts, newInProducts, strapProducts] = await Promise.all([
-    getProducts(12),
-    getLumaProducts(),
-    getProducts(8, "new-in"),
-    getProducts(4, "bag-straps"),
-  ]);
-  const newIn       = newInProducts.length >= 2 ? newInProducts : allProducts.slice(0, 8);
-  // Bestsellers = Luma bags (if found), fallback to allProducts
+/* ── Async product sections — streamed after hero ── */
+async function BestsellersSection() {
+  const [allProducts, lumaProducts] = await Promise.all([getProducts(8), getLumaProducts()]);
   const bestSellers = lumaProducts.length >= 2 ? lumaProducts : allProducts.slice(0, 8);
-  const collection  = strapProducts.length >= 2 ? strapProducts : allProducts.slice(0, 4);
+  return (
+    <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Bestsellers</h2>
+          <Link href="/shop" className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors">
+            Shop All
+          </Link>
+        </div>
+        <div className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4" style={{ scrollbarWidth: "none" }}>
+          {bestSellers.slice(0, 4).map((product, i) => (
+            <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
+              <ProductCard product={product} loading={i < 2 ? "eager" : "lazy"} />
+            </div>
+          ))}
+        </div>
+        <div className="w-full text-center md:hidden mt-6">
+          <Link href="/shop" className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors">
+            Shop All
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
+async function NewInSection() {
+  const [allProducts, newInProducts] = await Promise.all([getProducts(8), getProducts(8, "new-in")]);
+  const newIn = newInProducts.length >= 2 ? newInProducts : allProducts.slice(0, 8);
+  return <Carousel title="New In" viewAllHref="/shop" products={newIn} badges={{ 0: "New", 2: "New" }} />;
+}
+
+async function CollectionSection() {
+  const [allProducts, strapProducts] = await Promise.all([getProducts(8), getProducts(4, "bag-straps")]);
+  const collection = strapProducts.length >= 2 ? strapProducts : allProducts.slice(0, 4);
+  return (
+    <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Shop the Collection</h2>
+          <Link href="/shop" className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors">
+            Shop All
+          </Link>
+        </div>
+        <div className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4" style={{ scrollbarWidth: "none" }}>
+          {collection.map((product, i) => (
+            <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
+              <ProductCard product={product} badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined} />
+            </div>
+          ))}
+        </div>
+        <div className="w-full text-center md:hidden mt-6">
+          <Link href="/shop" className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors">
+            Shop All
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+async function BestSellersCarousel() {
+  const [allProducts, lumaProducts] = await Promise.all([getProducts(8), getLumaProducts()]);
+  const bestSellers = lumaProducts.length >= 2 ? lumaProducts : allProducts.slice(0, 8);
+  return <Carousel title="Best Sellers" viewAllHref="/shop" products={bestSellers} badges={{ 0: "Best Seller", 2: "Best Seller" }} />;
+}
+
+/* ── Skeleton placeholders ── */
+function ProductGridSkeleton() {
+  return (
+    <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
+      <div className="max-w-[1400px] mx-auto">
+        <div className="h-8 w-48 bg-neutral-200 rounded mb-6 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="aspect-[3/4] bg-neutral-200 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CarouselSkeleton() {
+  return (
+    <section className="w-full py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1400px] mx-auto">
+        <div className="h-8 w-32 bg-neutral-200 rounded mb-6 animate-pulse" />
+        <div className="flex gap-4 overflow-hidden">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex-shrink-0 w-[280px] aspect-[3/4] bg-neutral-200 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Page ── */
+export default function HomePage() {
   return (
     <div className="min-h-screen">
 
-      {/* ── Hero ── */}
+      {/* Hero — renders immediately, no data needed */}
       <section className="relative min-h-[420px] sm:min-h-[560px] lg:min-h-[680px] flex items-center justify-center text-center bg-neutral-900 overflow-hidden">
         <Image
           src="/hero-beach.webp"
@@ -70,19 +161,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Press strip ── */}
+      {/* Press strip — no data needed */}
       <section style={{ backgroundColor: "#eaeee3" }}>
         <div className="py-4 lg:py-6">
           <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex flex-col lg:flex-row items-center gap-8">
-            {/* Label */}
             <div className="font-extrabold text-center lg:text-left text-[13.6px] tracking-[-0.28px] uppercase whitespace-nowrap" style={{ color: "#3d472d" }}>
               As seen on sponsored content.
             </div>
-            {/* Divider */}
             <div className="w-px h-5 bg-[#2A2552] hidden lg:block shrink-0" />
-            {/* Logos container */}
             <div className="relative w-full overflow-hidden">
-              {/* Mobile: marquee */}
               <div className="flex md:hidden gap-8 whitespace-nowrap w-max items-center" style={{ animation: "marquee 25s linear infinite" }}>
                 {[...Array(4)].flatMap((_, rep) => [
                   { alt: "CBS NEWS", src: "/press-logos/cbs-news.png" },
@@ -95,7 +182,6 @@ export default async function HomePage() {
                   </div>
                 )))}
               </div>
-              {/* Desktop: static row */}
               <div className="hidden md:flex items-center justify-center lg:justify-between gap-4 xl:gap-8">
                 {[
                   { alt: "CBS NEWS", src: "/press-logos/cbs-news.png" },
@@ -114,46 +200,20 @@ export default async function HomePage() {
         <style>{`@keyframes marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }`}</style>
       </section>
 
-      {/* ── Bestsellers ── */}
-      <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
-        <div className="max-w-[1400px] mx-auto">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Bestsellers</h2>
-            <Link
-              href="/shop"
-              className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
-            >
-              Shop All
-            </Link>
-          </div>
-          {/* Horizontal scroll on mobile, 4-col grid on desktop */}
-          <div className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4" style={{ scrollbarWidth: "none" }}>
-            {bestSellers.slice(0, 4).map((product, i) => (
-              <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
-                <ProductCard product={product} loading={i < 4 ? "eager" : "lazy"} />
-              </div>
-            ))}
-          </div>
-          {/* Mobile-only Shop All */}
-          <div className="w-full text-center md:hidden mt-6">
-            <Link
-              href="/shop"
-              className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
-            >
-              Shop All
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Bestsellers — streamed */}
+      <Suspense fallback={<ProductGridSkeleton />}>
+        <BestsellersSection />
+      </Suspense>
 
-      {/* ── UGC video strip ── */}
+      {/* UGC strip — no data needed */}
       <UGCStrip />
 
-      {/* ── New In carousel ── */}
-      <Carousel title="New In" viewAllHref="/shop" products={newIn} badges={{ 0: "New", 2: "New" }} />
+      {/* New In — streamed */}
+      <Suspense fallback={<CarouselSkeleton />}>
+        <NewInSection />
+      </Suspense>
 
-      {/* ── CTA banner — Worn Daily ── */}
+      {/* CTA banner — no data needed */}
       <section
         className="relative flex items-center justify-center text-center px-6 py-16 sm:py-24 min-h-[280px]"
         style={{ background: "linear-gradient(rgba(0,0,0,0.52),rgba(0,0,0,0.52)),linear-gradient(135deg,#1a1a1a,#3a3a3a)" }}
@@ -174,7 +234,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Feature banner 1 — Spring Edit ── */}
+      {/* Feature banner 1 */}
       <section className="flex flex-col md:flex-row min-h-[400px] md:min-h-[480px]">
         <div className="flex-1 min-h-[240px] md:min-h-0 relative overflow-hidden">
           <Image
@@ -182,6 +242,7 @@ export default async function HomePage() {
             alt="Spring Edit"
             fill
             className="object-cover"
+            loading="lazy"
           />
         </div>
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
@@ -200,10 +261,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Best Sellers carousel ── */}
-      <Carousel title="Best Sellers" viewAllHref="/shop" products={bestSellers} badges={{ 0: "Best Seller", 2: "Best Seller" }} />
+      {/* Best Sellers carousel — streamed */}
+      <Suspense fallback={<CarouselSkeleton />}>
+        <BestSellersCarousel />
+      </Suspense>
 
-      {/* ── Feature banner 2 — What Makes It Your Go-To Bag ── */}
+      {/* Feature banner 2 */}
       <section className="flex flex-col md:flex-row-reverse min-h-[400px] md:min-h-[480px]">
         <div className="flex-1 min-h-[240px] md:min-h-0 relative overflow-hidden">
           <Image
@@ -211,6 +274,7 @@ export default async function HomePage() {
             alt="What Makes It Your Go-To Bag"
             fill
             className="object-cover"
+            loading="lazy"
           />
         </div>
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12 bg-neutral-50">
@@ -229,40 +293,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Shop the Collection grid ── */}
-      <section className="w-full py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#F8FAF8" }}>
-        <div className="max-w-[1400px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Shop the Collection</h2>
-            <Link
-              href="/shop"
-              className="hidden md:inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
-            >
-              Shop All
-            </Link>
-          </div>
-          <div
-            className="flex lg:grid overflow-x-auto lg:overflow-x-visible gap-2 md:gap-6 scroll-smooth snap-x snap-mandatory lg:snap-none lg:grid-cols-4"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {collection.map((product, i) => (
-              <div key={product.id} className="flex-shrink-0 w-[280px] md:w-auto snap-start">
-                <ProductCard product={product} badge={i === 0 ? "Best Seller" : i === 1 ? "New" : undefined} />
-              </div>
-            ))}
-          </div>
-          <div className="w-full text-center md:hidden mt-6">
-            <Link
-              href="/shop"
-              className="inline-flex items-center justify-center border border-neutral-900 text-neutral-900 px-5 py-2 text-sm font-semibold uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors"
-            >
-              Shop All
-            </Link>
-          </div>
-        </div>
-      </section>
-
-
+      {/* Shop the Collection — streamed */}
+      <Suspense fallback={<ProductGridSkeleton />}>
+        <CollectionSection />
+      </Suspense>
 
     </div>
   );
