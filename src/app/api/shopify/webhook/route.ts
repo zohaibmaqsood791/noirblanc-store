@@ -22,13 +22,19 @@ export async function POST(req: NextRequest) {
   }
 
   const data = JSON.parse(rawBody);
+  const topic = req.headers.get("x-shopify-topic") ?? "";
 
+  console.log("Shopify webhook topic:", topic);
+  console.log("Shopify webhook payload:", JSON.stringify(data));
+
+  // discounts/create payload has title and codes array
   // discounts/redeemcode_added payload has: code, discount_id
-  const code: string = data.code;
+  const code: string = data.code ?? data.codes?.[0]?.code ?? data.title;
   const discountId: string = data.discount_id ?? data.id;
 
   if (!code) {
-    return NextResponse.json({ error: "No code in payload" }, { status: 400 });
+    console.error("No code found in payload:", JSON.stringify(data));
+    return NextResponse.json({ error: "No code in payload", payload: data }, { status: 400 });
   }
 
   // Fetch discount details from Shopify to get value and type
