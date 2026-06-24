@@ -1,5 +1,78 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
+
+const PIXEL_ID   = process.env.META_PIXEL_ID!;
+const CAPI_TOKEN = process.env.META_CAPI_TOKEN!;
+
+function hash(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  return createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
+}
+
+async function metaCAPIPurchase(opts: {
+  orderId: string;
+  value: number;
+  currency: string;
+  contentIds: string[];
+  numItems: number;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  ip?: string;
+  ua?: string;
+  fbp?: string;
+  fbc?: string;
+  externalId?: string;
+  eventSourceUrl?: string;
+}) {
+  if (!PIXEL_ID || !CAPI_TOKEN) return;
+  try {
+    const user_data: Record<string, string | undefined> = {
+      em:                hash(opts.email),
+      fn:                hash(opts.firstName),
+      ln:                hash(opts.lastName),
+      ct:                hash(opts.city),
+      st:                hash(opts.state),
+      zp:                opts.zip ? createHash("sha256").update(opts.zip.trim()).digest("hex") : undefined,
+      country:           hash(opts.country || "us"),
+      client_ip_address: opts.ip,
+      client_user_agent: opts.ua,
+      fbp:               opts.fbp,
+      fbc:               opts.fbc,
+      external_id:       opts.externalId,
+    };
+    Object.keys(user_data).forEach(k => user_data[k] === undefined && delete user_data[k]);
+
+    await fetch(`https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${CAPI_TOKEN}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: [{
+          event_name:       "Purchase",
+          event_time:       Math.floor(Date.now() / 1000),
+          event_id:         `wp-${opts.orderId}`,
+          event_source_url: opts.eventSourceUrl,
+          action_source:    "website",
+          user_data,
+          custom_data: {
+            value:        opts.value,
+            currency:     opts.currency,
+            content_ids:  opts.contentIds,
+            content_type: "product",
+            num_items:    opts.numItems,
+            order_id:     opts.orderId,
+          },
+        }],
+      }),
+    });
+  } catch (e) {
+    console.error("[meta-capi] Purchase failed:", e);
+  }
+}
 
 const isSandbox = process.env.SQUARE_ENVIRONMENT !== "production";
 const SQUARE_API_BASE = isSandbox
@@ -170,7 +243,37 @@ export async function POST(req: NextRequest) {
       // Same — Square succeeded, don't surface WC failure to customer.
     }
 
-    // ── 3. Klaviyo Placed Order (fire-and-forget) ─────────────────────────
+    // ── 3. Meta CAPI Purchase (server-side — guaranteed IP/UA/email coverage) ──
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+             || req.headers.get("x-real-ip")
+             || undefined;
+    const ua  = req.headers.get("user-agent") || undefined;
+    const fbp = req.cookies.get("_fbp")?.value;
+    const fbc = req.cookies.get("_fbc")?.value;
+    const externalId = req.cookies.get("_nb_uid")?.value;
+
+    metaCAPIPurchase({
+      orderId:        orderNumber ?? paymentId,
+      value:          Math.round(amountCents) / 100,
+      currency,
+      contentIds:     (items ?? []).map(i => String(i.variationId ?? i.productId)),
+      numItems:       (items ?? []).reduce((s, i) => s + i.quantity, 0),
+      email:          buyerEmail,
+      firstName:      billing?.firstName,
+      lastName:       billing?.lastName,
+      city:           billing?.city,
+      state:          billing?.state,
+      zip:            billing?.postcode,
+      country:        billing?.country,
+      ip,
+      ua,
+      fbp,
+      fbc,
+      externalId,
+      eventSourceUrl: `https://noirblancnyc.com/checkout/success`,
+    });
+
+    // ── 4. Klaviyo Placed Order (fire-and-forget) ─────────────────────────
     await klaviyoPlacedOrder({
       email: buyerEmail,
       value: Math.round(amountCents) / 100,
