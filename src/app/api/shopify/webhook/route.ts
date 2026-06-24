@@ -13,6 +13,43 @@ function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
   return hash === hmacHeader;
 }
 
+async function fetchDiscountDetails(gid: string) {
+  const res = await fetch(`https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": SHOPIFY_ADMIN_TOKEN,
+    },
+    body: JSON.stringify({
+      query: `{
+        discountNode(id: "${gid}") {
+          discount {
+            ... on DiscountCodeBasic {
+              title
+              codes(first: 1) { nodes { code } }
+              customerGets {
+                value {
+                  ... on DiscountPercentage { percentage }
+                  ... on DiscountAmount { amount { amount } }
+                }
+              }
+              customerSelection {
+                ... on DiscountCustomerAll { allCustomers }
+                ... on DiscountCustomers {
+                  customers { email }
+                }
+              }
+              usageLimit
+              appliesOncePerCustomer
+            }
+          }
+        }
+      }`,
+    }),
+  });
+  return res.json();
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const hmac = req.headers.get("x-shopify-hmac-sha256") ?? "";
@@ -22,39 +59,60 @@ export async function POST(req: NextRequest) {
   }
 
   const data = JSON.parse(rawBody);
-  const topic = req.headers.get("x-shopify-topic") ?? "";
+  const gid: string = data.admin_graphql_api_id;
 
-  console.log("Shopify webhook topic:", topic);
-  console.log("Shopify webhook payload:", JSON.stringify(data));
-
-  // discounts/create payload has title and codes array
-  // discounts/redeemcode_added payload has: code, discount_id
-  const code: string = data.code ?? data.codes?.[0]?.code ?? data.title;
-  const discountId: string = data.discount_id ?? data.id;
-
-  if (!code) {
-    console.error("No code found in payload:", JSON.stringify(data));
-    return NextResponse.json({ error: "No code in payload", payload: data }, { status: 400 });
+  if (!gid) {
+    return NextResponse.json({ error: "No GraphQL ID in payload" }, { status: 400 });
   }
 
-  // Fetch discount details from Shopify to get value and type
+  // Fetch full discount details from Shopify
+  const details = await fetchDiscountDetails(gid);
+  const discount = details?.data?.discountNode?.discount;
+
+  if (!discount) {
+    console.error("Could not fetch discount details:", JSON.stringify(details));
+    return NextResponse.json({ error: "Could not fetch discount" }, { status: 500 });
+  }
+
+  const code = discount.codes?.nodes?.[0]?.code ?? discount.title;
+  if (!code) {
+    return NextResponse.json({ error: "No code found" }, { status: 400 });
+  }
+
+  // Determine discount amount and type
+  const value = discount.customerGets?.value;
   let amount = "5";
   let wcDiscountType = "percent";
 
-  if (discountId) {
-    const discountRes = await fetch(
-      `https://${SHOPIFY_STORE}/admin/api/2024-01/price_rules/${discountId}.json`,
-      { headers: { "X-Shopify-Access-Token": SHOPIFY_ADMIN_TOKEN } }
-    );
-
-    if (discountRes.ok) {
-      const { price_rule } = await discountRes.json();
-      amount = String(Math.abs(parseFloat(price_rule.value ?? "-5")));
-      wcDiscountType = price_rule.value_type === "percentage" ? "percent" : "fixed_cart";
-    }
+  if (value?.percentage !== undefined) {
+    amount = String(value.percentage * 100);
+    wcDiscountType = "percent";
+  } else if (value?.amount?.amount !== undefined) {
+    amount = String(value.amount.amount);
+    wcDiscountType = "fixed_cart";
   }
 
-  // Create coupon in WooCommerce
+  // Determine customer email restriction
+  const selection = discount.customerSelection;
+  const emails: string[] = [];
+  if (!selection?.allCustomers && selection?.customers?.length) {
+    emails.push(...selection.customers.map((c: { email: string }) => c.email));
+  }
+
+  // Build WooCommerce coupon
+  const couponPayload: Record<string, unknown> = {
+    code: code.toLowerCase(),
+    discount_type: wcDiscountType,
+    amount,
+    individual_use: false,
+    usage_limit: discount.usageLimit ?? 1,
+    usage_limit_per_user: discount.appliesOncePerCustomer ? 1 : 0,
+  };
+
+  if (emails.length) {
+    couponPayload.email_restrictions = emails;
+  }
+
   const auth = Buffer.from(`${WC_KEY}:${WC_SECRET}`).toString("base64");
   const wcRes = await fetch(`${WC_API_URL}/coupons`, {
     method: "POST",
@@ -62,14 +120,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
       Authorization: `Basic ${auth}`,
     },
-    body: JSON.stringify({
-      code: code.toLowerCase(),
-      discount_type: wcDiscountType,
-      amount,
-      individual_use: false,
-      usage_limit: 1,
-      usage_limit_per_user: 1,
-    }),
+    body: JSON.stringify(couponPayload),
   });
 
   const wcData = await wcRes.json();
@@ -79,6 +130,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "WooCommerce error", details: wcData }, { status: 500 });
   }
 
-  console.log(`✅ Synced discount ${code} → WooCommerce coupon ID ${wcData.id}`);
-  return NextResponse.json({ success: true, code, wcCouponId: wcData.id });
+  console.log(`✅ Synced ${code} (${amount}% ${wcDiscountType}) → WooCommerce coupon ID ${wcData.id}`);
+  return NextResponse.json({ success: true, code, amount, wcCouponId: wcData.id });
 }
