@@ -32,8 +32,12 @@ export default function PurchaseEvent({
       const contentIds = list.map(i => i.productId).filter((id): id is number => !!id);
       const numItems = list.reduce((s, i) => s + i.quantity, 0) || undefined;
 
-      // Dashboard funnel: completed purchase
-      trackFunnel("purchased");
+      // Dashboard funnel: completed purchase (deduplicated by order ID)
+      const purchaseKey = `nb_purchased_${orderId}`;
+      if (typeof window !== 'undefined' && !sessionStorage.getItem(purchaseKey)) {
+        sessionStorage.setItem(purchaseKey, '1');
+        trackFunnel("purchased");
+      }
 
       // 1. Meta Pixel purchase (with hashed user data for Advanced Matching)
       fbPurchase({ orderId, value: total, contentIds, numItems, user });
