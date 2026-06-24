@@ -125,6 +125,7 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
     $shipping_total   = floatval($data['shippingTotal']              ?? 0);
     $customer_email   = sanitize_email($billing['email']             ?? '');
     $coupons          = $data['coupons'] ?? [];
+    $attribution      = $data['attribution'] ?? [];
 
     // ── Create order ──
     // Use 'pending' so WooCommerce does not fire the new-order email before
@@ -214,6 +215,31 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
         $payment_id
     ));
 
+    // ── Save attribution ──
+    if (!empty($attribution)) {
+        $source   = sanitize_text_field($attribution['source']   ?? '');
+        $medium   = sanitize_text_field($attribution['medium']   ?? '');
+        $campaign = sanitize_text_field($attribution['campaign'] ?? '');
+        $content  = sanitize_text_field($attribution['content']  ?? '');
+        $referrer = esc_url_raw($attribution['referrer']         ?? '');
+
+        if ($source)   $order->update_meta_data('_nb_utm_source',   $source);
+        if ($medium)   $order->update_meta_data('_nb_utm_medium',   $medium);
+        if ($campaign) $order->update_meta_data('_nb_utm_campaign', $campaign);
+        if ($content)  $order->update_meta_data('_nb_utm_content',  $content);
+        if ($referrer) $order->update_meta_data('_nb_referrer',     $referrer);
+        $order->save();
+
+        if ($source || $medium || $campaign) {
+            $order->add_order_note(sprintf(
+                'Traffic source: %s / %s — Campaign: %s',
+                $source ?: 'direct',
+                $medium ?: 'none',
+                $campaign ?: 'none'
+            ));
+        }
+    }
+
     return new WP_REST_Response([
         'success'     => true,
         'orderId'     => $order->get_id(),
@@ -221,4 +247,47 @@ function noirblanc_create_order(WP_REST_Request $request): WP_REST_Response {
         'orderKey'    => $order->get_order_key(),
         'total'       => $order->get_total(),
     ], 200);
+}
+
+// ── Orders list: add Source column ────────────────────────────────────────────
+add_filter('manage_woocommerce_page_wc-orders_columns', 'nb_add_source_column');
+add_filter('manage_edit-shop_order_columns',            'nb_add_source_column');
+function nb_add_source_column(array $columns): array {
+    $new = [];
+    foreach ($columns as $key => $label) {
+        $new[$key] = $label;
+        if ($key === 'order_total') {
+            $new['nb_source'] = 'Source';
+        }
+    }
+    return $new;
+}
+
+add_action('manage_woocommerce_page_wc-orders_custom_column', 'nb_render_source_column', 10, 2);
+add_action('manage_shop_order_posts_custom_column',           'nb_render_source_column', 10, 2);
+function nb_render_source_column(string $column, $order_or_id): void {
+    if ($column !== 'nb_source') return;
+
+    $order    = is_object($order_or_id) ? $order_or_id : wc_get_order($order_or_id);
+    if (!$order) return;
+    $source   = $order->get_meta('_nb_utm_source');
+    $medium   = $order->get_meta('_nb_utm_medium');
+    $campaign = $order->get_meta('_nb_utm_campaign');
+
+    if (!$source) { echo '<span style="color:#aaa">—</span>'; return; }
+
+    $colors = [
+        'facebook'  => '#1877F2',
+        'instagram' => '#E1306C',
+        'google'    => '#4285F4',
+        'klaviyo'   => '#00B67A',
+        'direct'    => '#6B7280',
+    ];
+    $color = $colors[strtolower($source)] ?? '#374151';
+
+    echo '<span style="font-size:11px;line-height:1.4;display:block">';
+    echo '<strong style="color:' . esc_attr($color) . '">' . esc_html(ucfirst($source)) . '</strong>';
+    if ($medium)   echo '<br><span style="color:#6B7280">' . esc_html($medium) . '</span>';
+    if ($campaign) echo '<br><span style="color:#374151;font-size:10px">' . esc_html(wp_trim_words($campaign, 4, '…')) . '</span>';
+    echo '</span>';
 }

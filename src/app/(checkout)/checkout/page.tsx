@@ -10,7 +10,7 @@ import { applyCoupon, removeCoupon, updateShippingMethod, updateCustomerShipping
 import { klIdentify, klTrack } from "@/lib/klaviyo";
 import { trackFunnel } from "@/lib/funnel";
 import { logDebug } from "@/lib/debug-log";
-import { captureAttribution, getAttributionLabel } from "@/lib/attribution";
+import { captureAttribution, getAttributionLabel, getAttribution } from "@/lib/attribution";
 import { gtag } from "@/components/GoogleTag";
 import { track } from "@vercel/analytics";
 import type { Address, ShippingRate } from "@/types";
@@ -864,6 +864,7 @@ export default function CheckoutPage() {
       const effectiveShipMethod = overrides?.shipMethod ?? shipMethod;
       const effectiveShipTotal  = overrides?.shipTotal  ?? parseFloat((cart?.shippingTotal ?? "0").replace(/[^0-9.]/g, ""));
 
+      const attribution = getAttribution();
       const res = await fetch("/api/square/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -877,6 +878,13 @@ export default function CheckoutPage() {
           shippingMethod: effectiveShipMethod,
           shippingTotal:  effectiveShipTotal,
           coupons:        (cart?.appliedCoupons ?? []).map((c) => c.code),
+          attribution:    {
+            source:   attribution.source,
+            medium:   attribution.medium ?? "",
+            campaign: attribution.campaign ?? "",
+            content:  attribution.content ?? "",
+            referrer: attribution.referrer ?? "",
+          },
         }),
       });
       const data = await res.json();

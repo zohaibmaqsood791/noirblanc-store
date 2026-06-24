@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       shippingMethod,
       shippingTotal,
       coupons,
+      attribution,
     } = body as {
       sourceId: string;
       amountCents: number;
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
       shippingMethod?: string;
       shippingTotal?: number;
       coupons?: string[];
+      attribution?: { source: string; medium: string; campaign: string; content: string; referrer: string };
     };
 
     if (!sourceId || !amountCents) {
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
           shippingMethod: shippingMethod ?? "standard",
           shippingTotal: shippingTotal ?? 0,
           coupons: coupons ?? [],
+          attribution: attribution ?? {},
         }),
       });
 
