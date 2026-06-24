@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
-const WC_API_URL = process.env.WC_API_URL!;   // https://noirblanc.store/wp-json/wc/v3
+const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN!;
+const SHOPIFY_STORE = "e2121b-3.myshopify.com";
+const WC_API_URL = process.env.WC_API_URL!;
 const WC_KEY = process.env.WC_CONSUMER_KEY!;
 const WC_SECRET = process.env.WC_CONSUMER_SECRET!;
 
@@ -21,32 +23,29 @@ export async function POST(req: NextRequest) {
 
   const data = JSON.parse(rawBody);
 
-  // Shopify discount_codes/create webhook payload
-  const code = data.code;
-  const value = data.value;           // e.g. "5.0"
-  const valueType = data.value_type;  // "percentage" or "fixed_amount"
-  const customerEmail = data.entitled_customer_ids; // may be empty for code-based
+  // discounts/redeemcode_added payload has: code, discount_id
+  const code: string = data.code;
+  const discountId: string = data.discount_id ?? data.id;
 
   if (!code) {
     return NextResponse.json({ error: "No code in payload" }, { status: 400 });
   }
 
-  // Map Shopify discount type to WooCommerce discount type
-  const wcDiscountType = valueType === "percentage" ? "percent" : "fixed_cart";
+  // Fetch discount details from Shopify to get value and type
+  let amount = "5";
+  let wcDiscountType = "percent";
 
-  // Build WooCommerce coupon payload
-  const couponPayload: Record<string, unknown> = {
-    code: code.toLowerCase(),
-    discount_type: wcDiscountType,
-    amount: String(parseFloat(value)),
-    individual_use: false,
-    usage_limit: 1,
-    usage_limit_per_user: 1,
-  };
+  if (discountId) {
+    const discountRes = await fetch(
+      `https://${SHOPIFY_STORE}/admin/api/2024-01/price_rules/${discountId}.json`,
+      { headers: { "X-Shopify-Access-Token": SHOPIFY_ADMIN_TOKEN } }
+    );
 
-  // If there's a customer email restriction, add it
-  if (data.customer_selection === "prerequisite" && data.prerequisite_customer_ids?.length) {
-    // We'd need to look up the email — skip restriction for now
+    if (discountRes.ok) {
+      const { price_rule } = await discountRes.json();
+      amount = String(Math.abs(parseFloat(price_rule.value ?? "-5")));
+      wcDiscountType = price_rule.value_type === "percentage" ? "percent" : "fixed_cart";
+    }
   }
 
   // Create coupon in WooCommerce
@@ -57,7 +56,14 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
       Authorization: `Basic ${auth}`,
     },
-    body: JSON.stringify(couponPayload),
+    body: JSON.stringify({
+      code: code.toLowerCase(),
+      discount_type: wcDiscountType,
+      amount,
+      individual_use: false,
+      usage_limit: 1,
+      usage_limit_per_user: 1,
+    }),
   });
 
   const wcData = await wcRes.json();
@@ -67,6 +73,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "WooCommerce error", details: wcData }, { status: 500 });
   }
 
-  console.log(`✅ Synced discount ${code} to WooCommerce coupon ID ${wcData.id}`);
-  return NextResponse.json({ success: true, wcCouponId: wcData.id });
+  console.log(`✅ Synced discount ${code} → WooCommerce coupon ID ${wcData.id}`);
+  return NextResponse.json({ success: true, code, wcCouponId: wcData.id });
 }
