@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       event_id,
       event_source_url,
       test_event_code,
+      external_id,
       user = {},
       custom_data = {},
     } = body;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       client_user_agent: ua,
       fbp,
       fbc,
+      external_id: external_id || undefined,
     };
 
     // Remove undefined fields

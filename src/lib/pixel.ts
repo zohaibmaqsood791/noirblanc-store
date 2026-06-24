@@ -49,6 +49,18 @@ async function buildUserData(u: UserData): Promise<Record<string, string>> {
   return ud;
 }
 
+// Persistent anonymous user ID stored in cookie — used as external_id for EMQ
+function getExternalId(): string {
+  if (typeof document === "undefined") return "";
+  const key = "_nb_uid";
+  const match = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]+)`));
+  if (match) return match[1];
+  const uid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `${key}=${uid}; expires=${expires}; path=/; SameSite=Lax`;
+  return uid;
+}
+
 // Read test_event_code from meta tag (injected during testing only)
 function getTestEventCode(): string | undefined {
   if (typeof document === "undefined") return undefined;
@@ -71,6 +83,7 @@ function sendCAPI(params: {
       event_id:         params.event_id,
       event_source_url: window.location.href,
       test_event_code:  getTestEventCode(),
+      external_id:      getExternalId(),
       user:             params.user ?? {},
       custom_data:      params.custom_data ?? {},
     }),
