@@ -72,25 +72,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${raleway.variable} ${poppins.variable}`}>
       <head>
-        {/* Preload hero image so LCP fires early */}
         <link rel="preload" as="image" href="/hero-beach.webp" fetchPriority="high" />
-        {/* Meta CAPI test event code — only present when META_TEST_EVENT_CODE env var is set */}
         {process.env.META_TEST_EVENT_CODE && (
           <meta name="fb-test-event-code" content={process.env.META_TEST_EVENT_CODE} />
         )}
-        {/* Google Analytics 4 + Google Ads */}
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} crossOrigin="anonymous"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GA4_ID}', { send_page_view: false, timezone: 'America/Los_Angeles' });
-gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
-            `.trim(),
-          }}
-        />
       </head>
       <body className="font-body antialiased bg-white text-neutral-900">
         <StructuredData />
@@ -99,6 +84,18 @@ gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
         <Klaviyo />
         {children}
         <Analytics />
+        {/* GA4 + Google Ads — afterInteractive so they never block render */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">{`
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA4_ID}', { send_page_view: false, timezone: 'America/Los_Angeles' });
+gtag('config', '${AW_ID}', { timezone: 'America/Los_Angeles' });
+        `}</Script>
       </body>
     </html>
   );
