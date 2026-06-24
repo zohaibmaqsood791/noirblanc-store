@@ -9,6 +9,7 @@ export interface Product {
   regularPrice: string;
   salePrice: string;
   onSale: boolean;
+  sku?: string;
   stockStatus: "IN_STOCK" | "OUT_OF_STOCK" | "ON_BACKORDER";
   image: { databaseId: number; sourceUrl: string; altText: string } | null;
   galleryImages: { nodes: { databaseId: number; sourceUrl: string; altText: string }[] };
@@ -26,6 +27,7 @@ export interface ProductVariation {
   regularPrice: string;
   salePrice: string;
   stockStatus: string;
+  sku?: string;
   attributes: {
     nodes: { name: string; value: string }[];
   };
@@ -38,6 +40,7 @@ export interface CartItem {
     node: Pick<Product, "id" | "databaseId" | "name" | "slug" | "price" | "image" | "productCategories"> & {
       regularPrice?: string;
       salePrice?: string;
+      sku?: string;
     };
   };
   variation?: {
@@ -45,6 +48,7 @@ export interface CartItem {
       image?: { sourceUrl: string; altText: string } | null;
       regularPrice?: string;
       salePrice?: string;
+      sku?: string;
     };
   };
   quantity: number;
