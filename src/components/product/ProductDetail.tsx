@@ -1198,7 +1198,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
   useEffect(() => {
     const priceNum = parseFloat((displayPrice ?? "0").replace(/[^0-9.]/g, "")) || 0;
     pixel.viewContent({
-      contentId: selectedVariation?.databaseId ?? product.databaseId,
+      contentId: selectedVariation?.sku ?? (product as any).sku ?? selectedVariation?.databaseId ?? product.databaseId,
       contentName: product.name,
       value: priceNum,
     });
@@ -1311,7 +1311,7 @@ export default function ProductDetail({ product, relatedProducts = [], colorVari
       // Meta Pixel: AddToCart
       const priceNum = parseFloat((displayPrice ?? "0").replace(/[^0-9.]/g, "")) || 0;
       pixel.addToCart({
-        contentId: selectedVariation?.databaseId ?? product.databaseId,
+        contentId: selectedVariation?.sku ?? (product as any).sku ?? selectedVariation?.databaseId ?? product.databaseId,
         contentName: product.name,
         value: priceNum * pairs.length,
       });

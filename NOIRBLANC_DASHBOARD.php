@@ -42,7 +42,11 @@ function nb_capi_purchase(int $order_id): void {
     $content_ids = [];
     $num_items   = 0;
     foreach ($order->get_items() as $item) {
-        $content_ids[] = (string) $item->get_product_id();
+        $product = $item->get_variation_id()
+            ? wc_get_product($item->get_variation_id())
+            : wc_get_product($item->get_product_id());
+        $sku = $product ? $product->get_sku() : '';
+        $content_ids[] = $sku ?: (string) $item->get_product_id();
         $num_items     += $item->get_quantity();
     }
 

@@ -32,12 +32,14 @@ export const PRODUCT_FRAGMENT = gql`
       regularPrice
       salePrice
       stockStatus
+      sku
     }
     ... on VariableProduct {
       price
       regularPrice
       salePrice
       stockStatus
+      sku
       variations {
         nodes {
           id
@@ -47,6 +49,7 @@ export const PRODUCT_FRAGMENT = gql`
           regularPrice
           salePrice
           stockStatus
+          sku
           attributes {
             nodes {
               name

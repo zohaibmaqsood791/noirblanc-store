@@ -901,8 +901,8 @@ export default function CheckoutPage() {
           country: effectiveAddress.country,
         },
         items: items.map((item) => ({
-          // Same ID used by ViewContent/AddToCart so Meta catalog matching works end-to-end
-          productId: item.variation?.node.databaseId ?? item.product.node.databaseId,
+          // SKU matches Shopify Content ID in Meta catalog for dynamic ad matching
+          productId: item.variation?.node.sku ?? item.product.node.sku ?? item.variation?.node.databaseId ?? item.product.node.databaseId,
           name: item.product.node.name,
           quantity: item.quantity,
           total: (parseFloat((item.product.node.price ?? "0").replace(/[^0-9.]/g, "")) * item.quantity).toFixed(2),
