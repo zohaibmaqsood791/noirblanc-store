@@ -144,6 +144,12 @@ const nextConfig: NextConfig = {
         destination: "/collections/leather-wallets",
         permanent: true,
       },
+      // Shopify-style track order URL
+      {
+        source: "/a/track-order",
+        destination: "/track-order",
+        permanent: true,
+      },
     ];
   },
 
