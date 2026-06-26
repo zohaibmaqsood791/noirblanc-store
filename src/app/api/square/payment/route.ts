@@ -22,6 +22,7 @@ async function metaCAPIPurchase(opts: {
   state?: string;
   zip?: string;
   country?: string;
+  phone?: string;
   ip?: string;
   ua?: string;
   fbp?: string;
@@ -39,6 +40,7 @@ async function metaCAPIPurchase(opts: {
       st:                hash(opts.state),
       zp:                opts.zip ? createHash("sha256").update(opts.zip.trim()).digest("hex") : undefined,
       country:           hash(opts.country || "us"),
+      ph:                opts.phone ? createHash("sha256").update(opts.phone.replace(/\D/g, "")).digest("hex") : undefined,
       client_ip_address: opts.ip,
       client_user_agent: opts.ua,
       fbp:               opts.fbp,
@@ -272,6 +274,7 @@ export async function POST(req: NextRequest) {
       state:          billing?.state,
       zip:            billing?.postcode,
       country:        billing?.country,
+      phone:          billing?.phone,
       ip,
       ua,
       fbp,

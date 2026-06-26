@@ -1239,6 +1239,14 @@ export default function CheckoutPage() {
                   })()}
                   <Field label="ZIP code" value={address.postcode} onChange={(v) => { const a = { ...address, postcode: v }; setAddress(a); handleAddressChange(a); }} autoComplete="postal-code" />
                 </div>
+                <Field
+                  label="Phone (optional)"
+                  type="tel"
+                  value={address.phone ?? ""}
+                  onChange={(v) => setAddress({ ...address, phone: v })}
+                  autoComplete="tel"
+                />
+                <p className="text-xs text-[#757575] -mt-1">May be used to assist delivery</p>
               </div>
             </section>
 
