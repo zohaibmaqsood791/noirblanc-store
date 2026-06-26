@@ -46,7 +46,7 @@ export default function AnnouncementBar() {
         <div className="hidden sm:flex items-center gap-1 text-[11px] font-medium tracking-wide whitespace-nowrap">
           <Link href="/contact" className="hover:underline">Help</Link>
           <span className="opacity-50 mx-1">|</span>
-          <Link href="/track-order" className="hover:underline">Track Your Order</Link>
+          <Link href="/a/track-order" className="hover:underline">Track Your Order</Link>
         </div>
       </div>
     </div>

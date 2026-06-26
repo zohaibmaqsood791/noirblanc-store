@@ -144,10 +144,10 @@ const nextConfig: NextConfig = {
         destination: "/collections/leather-wallets",
         permanent: true,
       },
-      // Shopify-style track order URL
+      // /track-order redirects to the canonical /a/track-order
       {
-        source: "/a/track-order",
-        destination: "/track-order",
+        source: "/track-order",
+        destination: "/a/track-order",
         permanent: true,
       },
     ];
