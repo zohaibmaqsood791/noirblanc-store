@@ -150,6 +150,12 @@ const nextConfig: NextConfig = {
         destination: "/a/track-order",
         permanent: true,
       },
+      // Shopify-style pages URLs
+      {
+        source: "/pages/contact",
+        destination: "/contact",
+        permanent: true,
+      },
     ];
   },
 
