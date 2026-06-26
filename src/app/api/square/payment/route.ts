@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
         idempotency_key: randomUUID(),
         amount_money: { amount: Math.round(amountCents), currency },
         location_id: locationId,
-        buyer_email_address: buyerEmail ?? undefined,
+        buyer_email_address: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(buyerEmail ?? "") ? buyerEmail : undefined,
         note: "Noir & Blanc order",
       }),
     });
@@ -243,7 +243,14 @@ export async function POST(req: NextRequest) {
       // Same — Square succeeded, don't surface WC failure to customer.
     }
 
-    // ── 3. Meta CAPI Purchase (server-side — guaranteed IP/UA/email coverage) ──
+    // ── 3. Funnel: purchased (server-side — fires exactly once per payment) ──
+    fetch("https://noirblanc.store/wp-json/nb/v1/funnel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: "purchased" }),
+    }).catch(() => {});
+
+    // ── 4. Meta CAPI Purchase (server-side — guaranteed IP/UA/email coverage) ──
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
              || req.headers.get("x-real-ip")
              || undefined;
@@ -273,7 +280,7 @@ export async function POST(req: NextRequest) {
       eventSourceUrl: `https://noirblancnyc.com/checkout/success`,
     });
 
-    // ── 4. Klaviyo Placed Order (fire-and-forget) ─────────────────────────
+    // ── 5. Klaviyo Placed Order (fire-and-forget) ─────────────────────────
     await klaviyoPlacedOrder({
       email: buyerEmail,
       value: Math.round(amountCents) / 100,

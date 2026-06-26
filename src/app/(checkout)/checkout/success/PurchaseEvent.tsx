@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { purchase as fbPurchase, type UserData } from "@/lib/pixel";
 import { gtag, pushDataLayer, AW_ID, AW_CONVERSION_LABEL } from "@/components/GoogleTag";
 import { track } from "@vercel/analytics";
-import { trackFunnel } from "@/lib/funnel";
 
 type Item = { productId?: number; name: string; quantity: number; price: number };
 
@@ -31,13 +30,6 @@ export default function PurchaseEvent({
       const list = items ?? [];
       const contentIds = list.map(i => i.productId).filter((id): id is number => !!id);
       const numItems = list.reduce((s, i) => s + i.quantity, 0) || undefined;
-
-      // Dashboard funnel: completed purchase (deduplicated by order ID)
-      const purchaseKey = `nb_purchased_${orderId}`;
-      if (typeof window !== 'undefined' && !sessionStorage.getItem(purchaseKey)) {
-        sessionStorage.setItem(purchaseKey, '1');
-        trackFunnel("purchased");
-      }
 
       // 1. Meta Pixel purchase (with hashed user data for Advanced Matching)
       fbPurchase({ orderId, value: total, contentIds, numItems, user });
