@@ -618,11 +618,12 @@ export default function CheckoutPage() {
 
         const card = await p.card({
           style: {
-            ".input-container": { borderColor: "#D4D4D4", borderRadius: "5px" },
+            ".input-container": { borderColor: "#D4D4D4", borderRadius: "8px" },
             ".input-container.is-focus": { borderColor: "#1a1a1a" },
             ".input-container.is-error": { borderColor: "#E22C2C" },
-            ".message-text": { color: "#717171" },
-            input: { color: "#1a1a1a", fontSize: "14px" },
+            ".message-text": { color: "#E22C2C" },
+            ".message-icon": { color: "#E22C2C" },
+            input: { color: "#1a1a1a" },
           },
         });
         if (!active) { card.destroy(); return; }
@@ -1314,11 +1315,11 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="border border-[#D4D4D4] rounded-[5px] overflow-hidden">
+              <div className="border border-[#D4D4D4] rounded-[8px] overflow-hidden">
                 {/* Tab header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-[#F5F5F5] border-b border-[#D4D4D4]">
-                  <span className="text-sm font-medium text-[#1a1a1a]">Credit card</span>
-                  <div className="flex items-center gap-1 relative group">
+                <div className="flex items-center justify-between px-4 py-3.5 bg-[#F6F6F6] border-b border-[#D4D4D4]">
+                  <span className="text-sm font-semibold text-[#1a1a1a]">Credit card</span>
+                  <div className="flex items-center gap-1.5 relative group">
                     {[
                       { name: "VISA", src: "/checkout-icons/visa.svg" },
                       { name: "Mastercard", src: "/checkout-icons/mastercard.svg" },
@@ -1326,7 +1327,6 @@ export default function CheckoutPage() {
                     ].map((card) => (
                       <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
                     ))}
-                    {/* +5 badge — hover shows remaining cards */}
                     <div className="relative">
                       <button className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[9px] font-semibold text-[#555] h-6 flex items-center hover:border-[#999] transition-colors">+5</button>
                       <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-wrap gap-1 bg-[#1a1a1a] rounded-[6px] p-2 w-[140px] z-10 shadow-lg">
@@ -1345,16 +1345,16 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Square card form */}
-                <div className="px-4 pt-4 pb-2">
+                <div className="p-4 bg-white">
                   {!cardMounted && (
-                    <div className="flex items-center justify-center h-[90px]">
+                    <div className="flex items-center justify-center h-[160px]">
                       <svg className="animate-spin h-5 w-5 text-neutral-300" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                       </svg>
                     </div>
                   )}
-                  <div id="sq-card" />
+                  <div id="sq-card" className={!cardMounted ? "hidden" : ""} />
                 </div>
               </div>
 
