@@ -618,16 +618,11 @@ export default function CheckoutPage() {
 
         const card = await p.card({
           style: {
-            ".input-container": {
-              borderColor: "#D4D4D4",
-              borderRadius: "8px",
-            },
+            ".input-container": { borderColor: "#D4D4D4", borderRadius: "5px" },
             ".input-container.is-focus": { borderColor: "#1a1a1a" },
             ".input-container.is-error": { borderColor: "#E22C2C" },
-            ".message-text": { color: "#E22C2C" },
-            ".message-icon": { color: "#E22C2C" },
-            input: { color: "#1a1a1a" },
-            "input::placeholder": { color: "#999" },
+            ".message-text": { color: "#717171" },
+            input: { color: "#1a1a1a", fontSize: "14px" },
           },
         });
         if (!active) { card.destroy(); return; }
@@ -1319,21 +1314,21 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Shopify-style card form container */}
-              <div className="border border-[#D4D4D4] rounded-[12px] overflow-hidden bg-white shadow-sm">
-                {/* Header row */}
-                <div className="flex items-center justify-between px-4 py-3.5 bg-[#F6F6F6] border-b border-[#E0E0E0]">
-                  <span className="text-sm font-semibold text-[#1a1a1a]">Credit card</span>
-                  <div className="flex items-center gap-1.5 relative group">
+              <div className="border border-[#D4D4D4] rounded-[5px] overflow-hidden">
+                {/* Tab header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-[#F5F5F5] border-b border-[#D4D4D4]">
+                  <span className="text-sm font-medium text-[#1a1a1a]">Credit card</span>
+                  <div className="flex items-center gap-1 relative group">
                     {[
                       { name: "VISA", src: "/checkout-icons/visa.svg" },
                       { name: "Mastercard", src: "/checkout-icons/mastercard.svg" },
                       { name: "Amex", src: "/checkout-icons/amex.svg" },
-                    ].map((c) => (
-                      <img key={c.name} src={c.src} alt={c.name} width={38} height={24} className="rounded-[4px] shadow-sm" />
+                    ].map((card) => (
+                      <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
                     ))}
+                    {/* +5 badge — hover shows remaining cards */}
                     <div className="relative">
-                      <button className="bg-white border border-[#E0E0E0] rounded-[4px] px-1.5 text-[9px] font-semibold text-[#555] h-6 flex items-center hover:border-[#999] transition-colors">+5</button>
+                      <button className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[9px] font-semibold text-[#555] h-6 flex items-center hover:border-[#999] transition-colors">+5</button>
                       <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-wrap gap-1 bg-[#1a1a1a] rounded-[6px] p-2 w-[140px] z-10 shadow-lg">
                         {[
                           { name: "Discover", src: "/checkout-icons/discover.svg" },
@@ -1341,25 +1336,25 @@ export default function CheckoutPage() {
                           { name: "Elo", src: "/checkout-icons/elo.svg" },
                           { name: "JCB", src: "/checkout-icons/jcb.svg" },
                           { name: "UnionPay", src: "/checkout-icons/unionpay.svg" },
-                        ].map((c) => (
-                          <img key={c.name} src={c.src} alt={c.name} width={38} height={24} className="rounded-[3px]" />
+                        ].map((card) => (
+                          <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
                         ))}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Square card fields */}
-                <div className="p-4 bg-white">
+                {/* Square card form */}
+                <div className="px-4 pt-4 pb-2">
                   {!cardMounted && (
-                    <div className="flex items-center justify-center h-[160px]">
+                    <div className="flex items-center justify-center h-[90px]">
                       <svg className="animate-spin h-5 w-5 text-neutral-300" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                       </svg>
                     </div>
                   )}
-                  <div id="sq-card" className={!cardMounted ? "hidden" : ""} />
+                  <div id="sq-card" />
                 </div>
               </div>
 
