@@ -21,7 +21,7 @@ export default function PurchaseEvent({
   const fired = useRef(false);
 
   useEffect(() => {
-    if (fired.current || total <= 0) return;
+    if (fired.current || total <= 0 || !orderId) return;
 
     const send = () => {
       if (fired.current) return;
@@ -77,7 +77,7 @@ export default function PurchaseEvent({
       const t = setTimeout(send, 1500);
       return () => clearTimeout(t);
     }
-  }, [total, items, orderId]);
+  }, [total, items, orderId]);  // orderId in deps so effect re-runs once sessionStorage order loads
 
   return null;
 }
