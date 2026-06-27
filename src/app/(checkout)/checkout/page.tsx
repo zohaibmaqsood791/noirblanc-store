@@ -623,8 +623,7 @@ export default function CheckoutPage() {
             ".input-container.is-error": { borderColor: "#E22C2C" },
             ".message-text": { color: "#E22C2C" },
             ".message-icon": { color: "#E22C2C" },
-            input: { color: "#1a1a1a", fontSize: "14px", fontFamily: "Poppins", fontWeight: "400" },
-            "input.is-focus": { color: "#1a1a1a" },
+            input: { color: "#1a1a1a" },
           },
         });
         if (!active) { card.destroy(); return; }
