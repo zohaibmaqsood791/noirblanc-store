@@ -9,7 +9,7 @@ import { fetchCart, updateCartItem, removeFromCart, addToCart, fetchUpsellProduc
 import * as pixel from "@/lib/pixel";
 import { gtag, pushDataLayer, AW_ID } from "@/components/GoogleTag";
 import type { UpsellProduct } from "@/lib/cart";
-import { formatPrice } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import type { CartItem } from "@/types";
 
 const GREEN      = "#538125";
@@ -40,6 +40,7 @@ function CartLineItem({
   onQtyChange: (key: string, qty: number) => void;
   onRemove: (key: string) => void;
 }) {
+  const { formatPrice } = useCurrency();
   const { product, variation, quantity, total } = item;
   const attrs = variation?.node.attributes.nodes ?? [];
 
@@ -189,6 +190,7 @@ function CartLineItem({
 
 /* ── UPSELL ───────────────────────────────────────────────────────────────── */
 function UpsellCard({ product, onAdded }: { product: UpsellProduct; onAdded: () => void }) {
+  const { formatPrice } = useCurrency();
   const [adding, setAdding] = useState(false);
   const { setCart } = useCartStore();
 
@@ -406,6 +408,7 @@ const PAYMENT_LOGOS = [
 
 /* ── MAIN DRAWER ──────────────────────────────────────────────────────────── */
 export default function CartDrawer() {
+  const { formatPrice } = useCurrency();
   const { cart, isOpen, closeCart, setCart, variantImages } = useCartStore();
   const items = cart?.contents?.nodes ?? [];
   const itemCount = cart?.contents?.itemCount ?? 0;

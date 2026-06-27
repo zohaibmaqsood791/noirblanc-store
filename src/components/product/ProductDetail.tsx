@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { useCurrency } from "@/context/CurrencyContext";
 import { addToCart, fetchCart } from "@/lib/cart";
 import * as pixel from "@/lib/pixel";
 import { klTrack } from "@/lib/klaviyo";
@@ -1014,6 +1014,7 @@ function ReviewsSection({ reviews }: { reviews: Review[] }) {
    RELATED PRODUCTS
 ═══════════════════════════════════════════════════════════════════════════ */
 function RelatedProducts({ products }: { products: Product[] }) {
+  const { formatPrice } = useCurrency();
   if (!products.length) return null;
   return (
     <section className="py-10" style={{ backgroundColor: BG }}>
@@ -1087,6 +1088,7 @@ function sortColorVariants(variants: Product[]): Product[] {
 }
 
 export default function ProductDetail({ product, relatedProducts = [], colorVariants = [], reviews = [] }: Props) {
+  const { formatPrice } = useCurrency();
   const sortedColorVariants = sortColorVariants(colorVariants);
   const variations = product.variations?.nodes ?? [];
   const categories = product.productCategories?.nodes ?? [];
