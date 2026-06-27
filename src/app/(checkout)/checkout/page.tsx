@@ -26,6 +26,10 @@ interface SquareCard {
   tokenize: () => Promise<SqTokenResult>;
   destroy: () => void;
 }
+interface SqCardField {
+  attach: (selector: string) => Promise<void>;
+  destroy: () => void;
+}
 interface SqExpressButton {
   attach?: (selector: string) => Promise<void>;
   tokenize?: () => void;
@@ -38,6 +42,9 @@ interface SqPaymentRequest {
 }
 interface SquarePayments {
   card: (options?: Record<string, unknown>) => Promise<SquareCard>;
+  cardNumber: (options?: Record<string, unknown>) => Promise<SqCardField>;
+  expirationDate: (options?: Record<string, unknown>) => Promise<SqCardField>;
+  cvv: (options?: Record<string, unknown>) => Promise<SqCardField>;
   paymentRequest: (opts: Record<string, unknown>) => SqPaymentRequest;
   googlePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
   applePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
@@ -398,6 +405,10 @@ export default function CheckoutPage() {
   const [googlePayMounted, setGooglePayMounted] = useState(false);
   const [applePayMounted, setApplePayMounted] = useState(false);
   const cardRef = useRef<SquareCard | null>(null);
+  const cardNumberRef = useRef<SqCardField | null>(null);
+  const expirationRef = useRef<SqCardField | null>(null);
+  const cvvRef = useRef<SqCardField | null>(null);
+  const [nameOnCard, setNameOnCard] = useState("");
   const googlePayRef = useRef<SqExpressButton | null>(null);
   const applePayRef = useRef<SqExpressButton | null>(null);
   const paymentsRef = useRef<SquarePayments | null>(null);
@@ -600,10 +611,24 @@ export default function CheckoutPage() {
     document.head.appendChild(script);
   }, []);
 
-  /* Effect 1: Initialize Square payments instance + mount card form (once on SDK ready) */
+  /* Effect 1: Initialize Square payments instance + mount individual card fields */
   useEffect(() => {
     if (!sdkReady) return;
     let active = true;
+
+    const fieldStyle = {
+      ".input-container": {
+        borderColor: "#D4D4D4",
+        borderRadius: "8px",
+        borderWidth: "1px",
+      },
+      ".input-container.is-focus": { borderColor: "#1a1a1a" },
+      ".input-container.is-error": { borderColor: "#E22C2C" },
+      ".message-text": { color: "#E22C2C", fontSize: "11px" },
+      ".message-icon": { color: "#E22C2C" },
+      input: { color: "#1a1a1a", fontSize: "14px", fontFamily: "inherit" },
+      "input::placeholder": { color: "#aaa" },
+    };
 
     async function mountCard() {
       if (!window.Square || !active) return;
@@ -616,15 +641,8 @@ export default function CheckoutPage() {
         paymentsRef.current = p;
         setPaymentsReady(true);
 
-        const card = await p.card({
-          style: {
-            ".input-container": { borderColor: "#D4D4D4", borderRadius: "5px" },
-            ".input-container.is-focus": { borderColor: "#1a1a1a" },
-            ".input-container.is-error": { borderColor: "#E22C2C" },
-            ".message-text": { color: "#717171" },
-            input: { color: "#1a1a1a", fontSize: "14px" },
-          },
-        });
+        // Mount as single card (tokenizes all fields together incl. name)
+        const card = await p.card({ style: fieldStyle });
         if (!active) { card.destroy(); return; }
         await card.attach("#sq-card");
         if (!active) { card.destroy(); return; }
@@ -1314,19 +1332,19 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="border border-[#D4D4D4] rounded-[5px] overflow-hidden">
-                {/* Tab header */}
+              {/* Shopify-style card form */}
+              <div className="border border-[#D4D4D4] rounded-[10px] overflow-hidden bg-white">
+                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 bg-[#F5F5F5] border-b border-[#D4D4D4]">
-                  <span className="text-sm font-medium text-[#1a1a1a]">Credit card</span>
+                  <span className="text-sm font-semibold text-[#1a1a1a]">Credit card</span>
                   <div className="flex items-center gap-1 relative group">
                     {[
                       { name: "VISA", src: "/checkout-icons/visa.svg" },
                       { name: "Mastercard", src: "/checkout-icons/mastercard.svg" },
                       { name: "Amex", src: "/checkout-icons/amex.svg" },
-                    ].map((card) => (
-                      <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
+                    ].map((c) => (
+                      <img key={c.name} src={c.src} alt={c.name} width={38} height={24} className="rounded-[3px]" />
                     ))}
-                    {/* +5 badge — hover shows remaining cards */}
                     <div className="relative">
                       <button className="bg-white border border-[#E0E0E0] rounded px-1.5 text-[9px] font-semibold text-[#555] h-6 flex items-center hover:border-[#999] transition-colors">+5</button>
                       <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-wrap gap-1 bg-[#1a1a1a] rounded-[6px] p-2 w-[140px] z-10 shadow-lg">
@@ -1336,25 +1354,25 @@ export default function CheckoutPage() {
                           { name: "Elo", src: "/checkout-icons/elo.svg" },
                           { name: "JCB", src: "/checkout-icons/jcb.svg" },
                           { name: "UnionPay", src: "/checkout-icons/unionpay.svg" },
-                        ].map((card) => (
-                          <img key={card.name} src={card.src} alt={card.name} width={38} height={24} className="rounded-[3px]" />
+                        ].map((c) => (
+                          <img key={c.name} src={c.src} alt={c.name} width={38} height={24} className="rounded-[3px]" />
                         ))}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Square card form */}
-                <div className="px-4 pt-4 pb-2">
+                {/* Square card form — styled to look like individual fields */}
+                <div className="p-3">
                   {!cardMounted && (
-                    <div className="flex items-center justify-center h-[90px]">
+                    <div className="flex items-center justify-center h-[160px]">
                       <svg className="animate-spin h-5 w-5 text-neutral-300" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                       </svg>
                     </div>
                   )}
-                  <div id="sq-card" />
+                  <div id="sq-card" className={cardMounted ? "" : "hidden"} />
                 </div>
               </div>
 
