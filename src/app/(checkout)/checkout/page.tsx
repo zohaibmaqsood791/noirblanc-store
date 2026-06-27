@@ -1345,7 +1345,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Square card form */}
-                <div className="px-4 pt-4 pb-4">
+                <div className="px-4 pt-4 pb-2">
                   {!cardMounted && (
                     <div className="flex items-center justify-center h-[90px]">
                       <svg className="animate-spin h-5 w-5 text-neutral-300" viewBox="0 0 24 24" fill="none">
@@ -1355,14 +1355,6 @@ export default function CheckoutPage() {
                     </div>
                   )}
                   <div id="sq-card" />
-                  {/* Secured by Square badge */}
-                  <div className="flex items-center justify-center gap-1.5 mt-3">
-                    <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-                      <path d="M6 0L0.5 2.5V6.5C0.5 9.76 2.92 12.82 6 13.5C9.08 12.82 11.5 9.76 11.5 6.5V2.5L6 0Z" fill="#717171"/>
-                      <path d="M4.5 6.5L5.5 7.5L7.5 5.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="text-[11px] text-[#717171]">Secured by <span className="font-medium text-[#555]">Square</span> — 256-bit SSL encryption</span>
-                  </div>
                 </div>
               </div>
 
@@ -1473,7 +1465,7 @@ export default function CheckoutPage() {
             <button
               onClick={handlePay}
               disabled={!email || !address.firstName || !address.address1 || !cardMounted || paying}
-              className="w-full h-[54px] rounded-[5px] bg-[#1a1a1a] text-white text-base font-semibold hover:bg-[#2a2a2a] active:bg-[#111] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              className="w-full h-[52px] rounded-[5px] bg-[#1a1a1a] text-white text-base font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {paying ? (
                 <>
@@ -1481,45 +1473,10 @@ export default function CheckoutPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Processing your order…
+                  Processing…
                 </>
-              ) : (
-                <>
-                  <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
-                    <rect x="1" y="7" width="12" height="8" rx="1.5" stroke="white" strokeWidth="1.4"/>
-                    <path d="M4 7V4.5a3 3 0 016 0V7" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
-                  </svg>
-                  Pay now · {formatPrice(cart?.total ?? "")}
-                </>
-              )}
+              ) : "Pay now"}
             </button>
-
-            {/* Trust signals */}
-            <div className="flex items-center justify-center gap-4 mt-3 mb-1">
-              <div className="flex items-center gap-1 text-[11px] text-[#999]">
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1L1.5 4V8.5C1.5 11.8 4.4 14.7 8 15.5C11.6 14.7 14.5 11.8 14.5 8.5V4L8 1Z" stroke="#999" strokeWidth="1.3"/>
-                  <path d="M5.5 8L7 9.5L10.5 6" stroke="#999" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Secure checkout
-              </div>
-              <div className="w-px h-3 bg-[#E0E0E0]" />
-              <div className="flex items-center gap-1 text-[11px] text-[#999]">
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1.5C4.41 1.5 1.5 4.41 1.5 8C1.5 11.59 4.41 14.5 8 14.5C11.59 14.5 14.5 11.59 14.5 8C14.5 4.41 11.59 1.5 8 1.5Z" stroke="#999" strokeWidth="1.3"/>
-                  <path d="M8 5V8.5L10 10" stroke="#999" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                Free returns within 30 days
-              </div>
-              <div className="w-px h-3 bg-[#E0E0E0]" />
-              <div className="flex items-center gap-1 text-[11px] text-[#999]">
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                  <rect x="1.5" y="5.5" width="13" height="8" rx="1" stroke="#999" strokeWidth="1.3"/>
-                  <path d="M4.5 5.5V4a3.5 3.5 0 017 0v1.5" stroke="#999" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                256-bit SSL
-              </div>
-            </div>
 
             {/* Footer links */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-5 pb-10 text-xs text-[#717171]">
