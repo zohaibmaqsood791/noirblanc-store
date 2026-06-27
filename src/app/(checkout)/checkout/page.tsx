@@ -258,8 +258,8 @@ function OrderSummary({
           <li key={item.key} className="flex gap-3 items-center">
             <div className="relative flex-shrink-0 w-[64px] h-[64px]">
               <div className="w-full h-full rounded-[8px] border border-[#E0E0E0] overflow-hidden bg-white">
-                {item.product.node.image && (
-                  <Image src={item.product.node.image.sourceUrl} alt={item.product.node.name} fill className="object-contain p-1" sizes="64px" />
+                {(item.variation?.node.image ?? item.product.node.image) && (
+                  <Image src={(item.variation?.node.image ?? item.product.node.image)!.sourceUrl} alt={item.product.node.name} fill className="object-contain p-1" sizes="64px" />
                 )}
               </div>
               <span className="absolute -top-2 -right-2 bg-[#1a1a1a] text-white text-[10px] w-[20px] h-[20px] rounded-full flex items-center justify-center font-semibold leading-none z-10">
@@ -1419,9 +1419,9 @@ export default function CheckoutPage() {
                   </button>
                   <button onClick={() => setDiscountOpen(true)} className="w-full flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {items[0]?.product.node.image && (
+                      {(items[0]?.variation?.node.image ?? items[0]?.product.node.image) && (
                         <div className="w-10 h-10 rounded-[6px] border border-[#E0E0E0] overflow-hidden bg-white flex-shrink-0">
-                          <img src={items[0].product.node.image.sourceUrl} alt="" className="w-full h-full object-contain p-0.5" />
+                          <img src={(items[0].variation?.node.image ?? items[0].product.node.image)!.sourceUrl} alt="" className="w-full h-full object-contain p-0.5" />
                         </div>
                       )}
                       <div className="text-left">
