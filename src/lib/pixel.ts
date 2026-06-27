@@ -90,9 +90,16 @@ function sendCAPI(params: {
   }).catch(() => {});
 }
 
+function fbqOpts(event_id: string): Record<string, string> {
+  const opts: Record<string, string> = { eventID: event_id };
+  const testCode = getTestEventCode();
+  if (testCode) opts.testEventCode = testCode;
+  return opts;
+}
+
 export function pageView() {
   const event_id = genEventId();
-  fbq("track", "PageView", {}, { eventID: event_id });
+  fbq("track", "PageView", {}, fbqOpts(event_id));
   sendCAPI({ event_name: "PageView", event_id });
 }
 
@@ -110,7 +117,7 @@ export function viewContent(opts: {
     value:        opts.value,
     currency:     opts.currency ?? "USD",
   };
-  fbq("track", "ViewContent", data, { eventID: event_id });
+  fbq("track", "ViewContent", data, fbqOpts(event_id));
   sendCAPI({ event_name: "ViewContent", event_id, custom_data: data });
 }
 
@@ -130,9 +137,9 @@ export function addToCart(opts: {
     currency:     opts.currency ?? "USD",
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "AddToCart", data, { eventID: event_id, userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "AddToCart", data, { ...fbqOpts(event_id), userData: ud }));
   } else {
-    fbq("track", "AddToCart", data, { eventID: event_id });
+    fbq("track", "AddToCart", data, fbqOpts(event_id));
   }
   sendCAPI({ event_name: "AddToCart", event_id, user: opts.user, custom_data: data });
 }
@@ -150,9 +157,9 @@ export function initiateCheckout(opts: {
     currency:  opts.currency ?? "USD",
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "InitiateCheckout", data, { eventID: event_id, userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "InitiateCheckout", data, { ...fbqOpts(event_id), userData: ud }));
   } else {
-    fbq("track", "InitiateCheckout", data, { eventID: event_id });
+    fbq("track", "InitiateCheckout", data, fbqOpts(event_id));
   }
   sendCAPI({ event_name: "InitiateCheckout", event_id, user: opts.user, custom_data: data });
 }
@@ -176,9 +183,9 @@ export function purchase(opts: {
     order_id:     String(opts.orderId),
   };
   if (opts.user) {
-    buildUserData(opts.user).then(ud => fbq("track", "Purchase", data, { eventID: event_id, userData: ud }));
+    buildUserData(opts.user).then(ud => fbq("track", "Purchase", data, { ...fbqOpts(event_id), userData: ud }));
   } else {
-    fbq("track", "Purchase", data, { eventID: event_id });
+    fbq("track", "Purchase", data, fbqOpts(event_id));
   }
   sendCAPI({ event_name: "Purchase", event_id, user: opts.user, custom_data: data });
 }
