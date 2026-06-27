@@ -170,6 +170,7 @@ const nextConfig: NextConfig = {
       { source: "/en-ca/:path*", destination: "/ca/:path*", permanent: true },
       { source: "/en-nz/:path*", destination: "/nz/:path*", permanent: true },
       // Old Shopify product URLs → new product pages
+      { source: "/products/hana-medium-weave-texture-tote-bag-black", destination: "/products/nora-tote-noirwoven", permanent: true },
       { source: "/products/savannah-wallet-purse-saddle-brown", destination: "/products/elysee-zip-around-wallet", permanent: true },
       { source: "/products/savannah-wallet-purse",              destination: "/products/elysee-zip-around-wallet", permanent: true },
     ];
