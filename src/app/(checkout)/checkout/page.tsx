@@ -623,7 +623,12 @@ export default function CheckoutPage() {
             ".input-container.is-error": { borderColor: "#E22C2C" },
             ".message-text": { color: "#E22C2C" },
             ".message-icon": { color: "#E22C2C" },
-            input: { color: "#1a1a1a" },
+            input: { color: "#1a1a1a", fontSize: "14px", fontWeight: "400", backgroundColor: "#ffffff" },
+            "input::placeholder": { color: "#aaaaaa", fontWeight: "300" },
+            "input.is-focus": { color: "#1a1a1a" },
+            "input.is-focus::placeholder": { color: "#cccccc" },
+            "input.is-error": { color: "#1a1a1a" },
+            "input.is-error::placeholder": { color: "#aaaaaa" },
           },
         });
         if (!active) { card.destroy(); return; }
