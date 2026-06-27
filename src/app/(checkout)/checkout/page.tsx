@@ -26,6 +26,10 @@ interface SquareCard {
   tokenize: () => Promise<SqTokenResult>;
   destroy: () => void;
 }
+interface SqField {
+  attach: (selector: string) => Promise<void>;
+  destroy: () => void;
+}
 interface SqExpressButton {
   attach?: (selector: string) => Promise<void>;
   tokenize?: () => void;
@@ -38,6 +42,9 @@ interface SqPaymentRequest {
 }
 interface SquarePayments {
   card: (options?: Record<string, unknown>) => Promise<SquareCard>;
+  cardNumber: (options?: Record<string, unknown>) => Promise<SqField>;
+  expirationDate: (options?: Record<string, unknown>) => Promise<SqField>;
+  cvv: (options?: Record<string, unknown>) => Promise<SqField>;
   paymentRequest: (opts: Record<string, unknown>) => SqPaymentRequest;
   googlePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
   applePay: (req: SqPaymentRequest) => Promise<SqExpressButton>;
@@ -398,6 +405,9 @@ export default function CheckoutPage() {
   const [googlePayMounted, setGooglePayMounted] = useState(false);
   const [applePayMounted, setApplePayMounted] = useState(false);
   const cardRef = useRef<SquareCard | null>(null);
+  const cardNumberRef = useRef<SqField | null>(null);
+  const expirationRef = useRef<SqField | null>(null);
+  const cvvRef = useRef<SqField | null>(null);
   const googlePayRef = useRef<SqExpressButton | null>(null);
   const applePayRef = useRef<SqExpressButton | null>(null);
   const paymentsRef = useRef<SquarePayments | null>(null);
@@ -616,20 +626,39 @@ export default function CheckoutPage() {
         paymentsRef.current = p;
         setPaymentsReady(true);
 
-        const card = await p.card({
-          style: {
-            ".input-container": { borderColor: "#D4D4D4", borderRadius: "8px" },
-            ".input-container.is-focus": { borderColor: "#1a1a1a" },
-            ".input-container.is-error": { borderColor: "#E22C2C" },
-            ".message-text": { color: "#E22C2C" },
-            ".message-icon": { color: "#E22C2C" },
-            input: { color: "#1a1a1a" },
-          },
-        });
-        if (!active) { card.destroy(); return; }
-        await card.attach("#sq-card");
-        if (!active) { card.destroy(); return; }
-        cardRef.current = card;
+        const fieldStyle = {
+          ".input-container": { borderColor: "transparent" },
+          ".input-container.is-focus": { borderColor: "transparent" },
+          ".input-container.is-error": { borderColor: "transparent" },
+          ".message-text": { color: "#E22C2C" },
+          ".message-icon": { color: "#E22C2C" },
+          input: { color: "#1a1a1a" },
+        };
+
+        const [cardNumber, expirationDate, cvv] = await Promise.all([
+          p.cardNumber({ style: fieldStyle }),
+          p.expirationDate({ style: fieldStyle }),
+          p.cvv({ style: fieldStyle }),
+        ]);
+        if (!active) {
+          cardNumber.destroy(); expirationDate.destroy(); cvv.destroy();
+          return;
+        }
+        await Promise.all([
+          cardNumber.attach("#sq-card-number"),
+          expirationDate.attach("#sq-expiration-date"),
+          cvv.attach("#sq-cvv"),
+        ]);
+        if (!active) {
+          cardNumber.destroy(); expirationDate.destroy(); cvv.destroy();
+          return;
+        }
+        cardNumberRef.current = cardNumber;
+        expirationRef.current = expirationDate;
+        cvvRef.current = cvv;
+
+        // Keep cardRef pointing to cardNumber for tokenization
+        cardRef.current = cardNumber as unknown as SquareCard;
         setCardMounted(true);
       } catch (e) {
         console.error("[Square] card mount error:", e);
@@ -639,7 +668,10 @@ export default function CheckoutPage() {
     mountCard();
     return () => {
       active = false;
-      if (cardRef.current) { cardRef.current.destroy(); cardRef.current = null; }
+      if (cardNumberRef.current) { cardNumberRef.current.destroy(); cardNumberRef.current = null; }
+      if (expirationRef.current) { expirationRef.current.destroy(); expirationRef.current = null; }
+      if (cvvRef.current) { cvvRef.current.destroy(); cvvRef.current = null; }
+      cardRef.current = null;
       setCardMounted(false);
     };
   }, [sdkReady]);
@@ -1344,7 +1376,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Square card form */}
+                {/* Square individual card fields — Shopify-style layout */}
                 <div className="p-4 bg-white">
                   {!cardMounted && (
                     <div className="flex items-center justify-center h-[160px]">
@@ -1354,7 +1386,21 @@ export default function CheckoutPage() {
                       </svg>
                     </div>
                   )}
-                  <div id="sq-card" className={!cardMounted ? "hidden" : ""} />
+                  <div className={!cardMounted ? "hidden" : "flex flex-col gap-2"}>
+                    {/* Card number */}
+                    <div className="border border-[#D4D4D4] rounded-[8px] px-3 py-3 focus-within:border-[#1a1a1a] transition-colors">
+                      <div id="sq-card-number" style={{ minHeight: "24px" }} />
+                    </div>
+                    {/* Expiry + CVV side by side */}
+                    <div className="flex gap-2">
+                      <div className="flex-1 border border-[#D4D4D4] rounded-[8px] px-3 py-3 focus-within:border-[#1a1a1a] transition-colors">
+                        <div id="sq-expiration-date" style={{ minHeight: "24px" }} />
+                      </div>
+                      <div className="flex-1 border border-[#D4D4D4] rounded-[8px] px-3 py-3 focus-within:border-[#1a1a1a] transition-colors">
+                        <div id="sq-cvv" style={{ minHeight: "24px" }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
