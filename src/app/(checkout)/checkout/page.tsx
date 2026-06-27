@@ -620,14 +620,12 @@ export default function CheckoutPage() {
       ".input-container": {
         borderColor: "#D4D4D4",
         borderRadius: "8px",
-        borderWidth: "1px",
       },
       ".input-container.is-focus": { borderColor: "#1a1a1a" },
       ".input-container.is-error": { borderColor: "#E22C2C" },
-      ".message-text": { color: "#E22C2C", fontSize: "11px" },
+      ".message-text": { color: "#E22C2C" },
       ".message-icon": { color: "#E22C2C" },
-      input: { color: "#1a1a1a", fontSize: "14px", fontFamily: "inherit" },
-      "input::placeholder": { color: "#aaa" },
+      input: { color: "#1a1a1a" },
     };
 
     async function mountCard() {
