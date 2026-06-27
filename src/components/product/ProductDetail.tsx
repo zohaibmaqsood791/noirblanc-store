@@ -470,8 +470,8 @@ function BundleSelector({
   // origNum = strikethrough (the base before bundle discount)
   const baseNum = parseFloat((salePrice || regularPrice || "0").replace(/[^0-9.]/g, "")) || 0;
   const compareNum = baseNum; // strikethrough = current price (bundle saves on top of this)
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  const { formatPrice } = useCurrency();
+  const fmt = (n: number) => formatPrice(`$${n.toFixed(2)}`);
 
   const makeDefaultPair = (): BundlePair => {
     const colorAttr = defaultVariation?.attributes.nodes.find((a) => a.name.toLowerCase().includes("color"));
