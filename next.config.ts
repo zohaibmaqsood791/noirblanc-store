@@ -159,6 +159,8 @@ const nextConfig: NextConfig = {
       { source: "/pages/terms-of-service",destination: "/terms",            permanent: true },
       { source: "/pages/terms",           destination: "/terms",            permanent: true },
       { source: "/pages/faq",             destination: "/faq",              permanent: true },
+      // Old Shopify product URLs → new product pages
+      { source: "/products/savannah-wallet-purse-saddle-brown", destination: "/products/elysee-zip-around-wallet", permanent: true },
     ];
   },
 
