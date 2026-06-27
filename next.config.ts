@@ -159,6 +159,16 @@ const nextConfig: NextConfig = {
       { source: "/pages/terms-of-service",destination: "/terms",            permanent: true },
       { source: "/pages/terms",           destination: "/terms",            permanent: true },
       { source: "/pages/faq",             destination: "/faq",              permanent: true },
+      // Shopify-style country code prefixes → our locale prefixes
+      { source: "/de/:path*", destination: "/eu/:path*", permanent: true },
+      { source: "/fr/:path*", destination: "/eu/:path*", permanent: true },
+      { source: "/es/:path*", destination: "/eu/:path*", permanent: true },
+      { source: "/it/:path*", destination: "/eu/:path*", permanent: true },
+      { source: "/nl/:path*", destination: "/eu/:path*", permanent: true },
+      { source: "/en-gb/:path*", destination: "/gb/:path*", permanent: true },
+      { source: "/en-au/:path*", destination: "/au/:path*", permanent: true },
+      { source: "/en-ca/:path*", destination: "/ca/:path*", permanent: true },
+      { source: "/en-nz/:path*", destination: "/nz/:path*", permanent: true },
       // Old Shopify product URLs → new product pages
       { source: "/products/savannah-wallet-purse-saddle-brown", destination: "/products/elysee-zip-around-wallet", permanent: true },
       { source: "/products/savannah-wallet-purse",              destination: "/products/elysee-zip-around-wallet", permanent: true },
