@@ -150,12 +150,15 @@ const nextConfig: NextConfig = {
         destination: "/a/track-order",
         permanent: true,
       },
-      // Shopify-style pages URLs
-      {
-        source: "/pages/contact",
-        destination: "/contact",
-        permanent: true,
-      },
+      // Shopify-style /pages/* URLs
+      { source: "/pages/contact",         destination: "/contact",          permanent: true },
+      { source: "/pages/shipping-policy", destination: "/shipping-returns", permanent: true },
+      { source: "/pages/privacy-policy",  destination: "/privacy-policy",   permanent: true },
+      { source: "/pages/refund-policy",   destination: "/refund-policy",    permanent: true },
+      { source: "/pages/return-policy",   destination: "/refund-policy",    permanent: true },
+      { source: "/pages/terms-of-service",destination: "/terms",            permanent: true },
+      { source: "/pages/terms",           destination: "/terms",            permanent: true },
+      { source: "/pages/faq",             destination: "/faq",              permanent: true },
     ];
   },
 
