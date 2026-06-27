@@ -618,12 +618,13 @@ export default function CheckoutPage() {
 
         const card = await p.card({
           style: {
-            ".input-container": { borderColor: "#D4D4D4", borderRadius: "8px" },
+            ".input-container": { borderColor: "#D4D4D4", borderWidth: "1px" },
             ".input-container.is-focus": { borderColor: "#1a1a1a" },
             ".input-container.is-error": { borderColor: "#E22C2C" },
             ".message-text": { color: "#E22C2C" },
             ".message-icon": { color: "#E22C2C" },
-            input: { color: "#1a1a1a" },
+            input: { color: "#1a1a1a", fontSize: "14px", fontFamily: "Poppins, sans-serif", fontWeight: "400" },
+            "input.is-focus": { color: "#1a1a1a" },
           },
         });
         if (!active) { card.destroy(); return; }
