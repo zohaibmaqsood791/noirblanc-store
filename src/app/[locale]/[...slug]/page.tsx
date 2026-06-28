@@ -1,14 +1,16 @@
 import { redirect, notFound } from "next/navigation";
 
-const KNOWN_PAGES = ["contact", "faq", "privacy-policy", "refund-policy", "shipping-returns", "terms", "track-order", "size-guide"];
+// Block obvious bot/WP probe paths; redirect everything else to strip the locale prefix
+const BOT_PATTERNS = /\.(php|asp|aspx|jsp|cgi|env|git|htaccess|xml|sql)$/i;
+const WP_PATHS = /^wp-|^xmlrpc|^\.well-known\/.*\.php/i;
 
-// Redirect /[locale]/known-page → /known-page; block everything else (bot probes, WP paths)
 export default async function LocaleFallback({
   params,
 }: {
   params: Promise<{ locale: string; slug: string[] }>;
 }) {
   const { slug } = await params;
-  if (!KNOWN_PAGES.includes(slug[0])) notFound();
-  redirect(`/${slug.join("/")}`);
+  const path = slug.join("/");
+  if (BOT_PATTERNS.test(path) || WP_PATHS.test(path)) notFound();
+  redirect(`/${path}`);
 }
