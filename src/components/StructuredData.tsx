@@ -4,16 +4,16 @@ export default function StructuredData() {
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://noirblancnyc.com/#organization",
+        "@id": "https://noirblancny.com/#organization",
         name: "Noir & Blanc",
-        url: "https://noirblancnyc.com",
+        url: "https://noirblancny.com",
         logo: {
           "@type": "ImageObject",
-          url: "https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg",
+          url: "https://noirblancny.com/cdn/shop/files/Group_1171277502_2.svg",
         },
         description:
           "Discover Noir & Blanc luxury handbags collection. Timeless, meticulously crafted handbags including crossbody bags, totes, backpacks, and wallets.",
-        email: "hello@noirblancnyc.com",
+        email: "hello@noirblancny.com",
         sameAs: [
           "https://www.instagram.com/noirblancnyc/",
           "https://www.tiktok.com/@noirandblancnyc",
@@ -22,15 +22,15 @@ export default function StructuredData() {
       },
       {
         "@type": "WebSite",
-        "@id": "https://noirblancnyc.com/#website",
-        url: "https://noirblancnyc.com",
+        "@id": "https://noirblancny.com/#website",
+        url: "https://noirblancny.com",
         name: "Noir & Blanc",
-        publisher: { "@id": "https://noirblancnyc.com/#organization" },
+        publisher: { "@id": "https://noirblancny.com/#organization" },
         potentialAction: {
           "@type": "SearchAction",
           target: {
             "@type": "EntryPoint",
-            urlTemplate: "https://noirblancnyc.com/shop?q={search_term_string}",
+            urlTemplate: "https://noirblancny.com/shop?q={search_term_string}",
           },
           "query-input": "required name=search_term_string",
         },

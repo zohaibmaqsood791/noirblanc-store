@@ -8,7 +8,7 @@ import { gql } from "graphql-request";
 
 export const revalidate = 3600; // cache 1h
 
-const SITE = "https://noirblancnyc.com";
+const SITE = "https://noirblancny.com";
 const BRAND = "Noir & Blanc";
 const DEFAULT_GENDER = "female";
 const DEFAULT_AGE_GROUP = "adult";

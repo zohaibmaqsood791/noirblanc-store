@@ -44,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const collections = await getAllCollections();
 
   return collections.map((collection: any) => ({
-    url: `https://noirblancnyc.com/collections/${collection.slug}`,
+    url: `https://noirblancny.com/collections/${collection.slug}`,
     lastModified: collection.modified || new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.8,

@@ -34,7 +34,7 @@ const faqs = [
       },
       {
         q: "How do I start a return?",
-        a: "Email us at hello@noirblancnyc.com with your order number and reason for return. We'll send you a prepaid return label within 1–2 business days.",
+        a: "Email us at hello@noirblancny.com with your order number and reason for return. We'll send you a prepaid return label within 1–2 business days.",
       },
       {
         q: "When will I receive my refund?",

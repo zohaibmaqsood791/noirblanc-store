@@ -40,14 +40,14 @@ export default function ShippingReturnsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Returns</h2>
-            <p>We offer fast and easy returns on all orders within 30 days of order placement. To begin a return, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>We offer fast and easy returns on all orders within 30 days of order placement. To begin a return, please contact us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
             <p className="mt-2">Items must be unused, unaltered, and in their original packaging. Once received and inspected, we will notify you by email whether your refund is approved or denied. Please allow 10 days for the refund to be processed once approved.</p>
             <p className="mt-2">No restocking fees apply. The cost of the return label is the customer's responsibility. Shipping costs are non-refundable.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Exchanges</h2>
-            <p>We only replace items if they are defective or damaged. If you need an exchange, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a> for instructions.</p>
+            <p>We only replace items if they are defective or damaged. If you need an exchange, please contact us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a> for instructions.</p>
           </section>
 
           <section>
@@ -58,7 +58,7 @@ export default function ShippingReturnsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Contact</h2>
-            <p>Questions about shipping? Email us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>Questions about shipping? Email us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
           </section>
 
         </div>

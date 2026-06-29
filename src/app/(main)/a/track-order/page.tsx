@@ -272,8 +272,8 @@ export default function TrackOrderPage() {
             {/* Help */}
             <p className="text-center text-xs text-neutral-400">
               Need help?{" "}
-              <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-600">
-                hello@noirblancnyc.com
+              <a href="mailto:hello@noirblancny.com" className="underline text-neutral-600">
+                hello@noirblancny.com
               </a>
             </p>
           </div>

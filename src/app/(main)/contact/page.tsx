@@ -54,8 +54,8 @@ export default function ContactPage() {
                 <Mail size={20} className="mt-0.5 text-neutral-400 shrink-0" />
                 <div>
                   <p className="text-sm font-medium">Email</p>
-                  <a href="mailto:hello@noirblancnyc.com" className="text-sm text-neutral-500 hover:text-black transition-colors">
-                    hello@noirblancnyc.com
+                  <a href="mailto:hello@noirblancny.com" className="text-sm text-neutral-500 hover:text-black transition-colors">
+                    hello@noirblancny.com
                   </a>
                 </div>
               </div>

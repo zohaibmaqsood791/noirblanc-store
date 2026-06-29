@@ -108,7 +108,7 @@ export default function Footer() {
             {/* Brand col */}
             <div className="lg:col-span-2">
               <Image
-                src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
+                src="https://noirblancny.com/cdn/shop/files/Group_1171277502_2.svg"
                 alt="Noir & Blanc"
                 width={130}
                 height={38}
@@ -121,8 +121,8 @@ export default function Footer() {
               <p className="text-neutral-400 text-sm mb-1">
                 <strong className="text-white">Monday – Friday</strong>, 9 AM – 5 PM EST
               </p>
-              <a href="mailto:hello@noirblancnyc.com" className="text-neutral-300 text-sm hover:text-white transition-colors">
-                ✉ hello@noirblancnyc.com
+              <a href="mailto:hello@noirblancny.com" className="text-neutral-300 text-sm hover:text-white transition-colors">
+                ✉ hello@noirblancny.com
               </a>
 
               {/* Socials */}

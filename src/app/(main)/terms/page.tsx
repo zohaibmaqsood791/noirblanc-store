@@ -41,7 +41,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 5 – Products or Services</h2>
             <p>Certain products or services may be available exclusively online through the website. These products or services may have limited quantities and are subject to return or exchange only according to our Return Policy. We reserve the right to limit the sales of our products or Services to any person, geographic region or jurisdiction.</p>
-            <p className="mt-2">If you are unhappy with your product within 30 days of receipt, please email us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a> with your order number, full name, shipping address and reason for return/refund.</p>
+            <p className="mt-2">If you are unhappy with your product within 30 days of receipt, please email us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a> with your order number, full name, shipping address and reason for return/refund.</p>
           </section>
 
           <section>
@@ -117,7 +117,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Section 20 – Contact Information</h2>
-            <p>Questions about the Terms of Service should be sent to us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>Questions about the Terms of Service should be sent to us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
           </section>
 
         </div>

@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20">
       <NotFoundTracker />
       <Image
-        src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
+        src="https://noirblancny.com/cdn/shop/files/Group_1171277502_2.svg"
         alt="Noir & Blanc"
         width={130}
         height={38}

@@ -94,7 +94,7 @@ export default function OrderConfirmation({
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
             <Image
-              src="https://noirblancnyc.com/cdn/shop/files/Group_1171277502_2.svg"
+              src="https://noirblancny.com/cdn/shop/files/Group_1171277502_2.svg"
               alt="Noir & Blanc"
               width={110}
               height={32}
@@ -259,8 +259,8 @@ export default function OrderConfirmation({
             <div className="bg-white rounded-xl p-5 text-center">
               <p className="text-xs text-neutral-500">
                 Questions? Email us at{" "}
-                <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-700">
-                  hello@noirblancnyc.com
+                <a href="mailto:hello@noirblancny.com" className="underline text-neutral-700">
+                  hello@noirblancny.com
                 </a>
               </p>
             </div>

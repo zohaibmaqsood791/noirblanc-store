@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
             <p>When you provide us with personal information to complete a transaction, verify your credit card, place an order, arrange for a delivery or return a purchase, we imply that you consent to our collecting it and using it for that specific reason only.</p>
             <p className="mt-2">If we ask for your personal information for a secondary reason, like marketing, we will either ask you directly for your expressed consent, or provide you with an opportunity to say no.</p>
             <h3 className="font-semibold text-neutral-800 mt-4 mb-2">How do I withdraw my consent?</h3>
-            <p>If after you opt-in, you change your mind, you may withdraw your consent for us to contact you, for the continued collection, use or disclosure of your information, at any time, by contacting us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>If after you opt-in, you change your mind, you may withdraw your consent for us to contact you, for the continued collection, use or disclosure of your information, at any time, by contacting us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
           </section>
 
           <section>
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Questions & Contact Information</h2>
-            <p>If you would like to access, correct, amend or delete any personal information we have about you, register a complaint, or simply want more information, contact our Privacy Compliance Officer at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>If you would like to access, correct, amend or delete any personal information we have about you, register a complaint, or simply want more information, contact our Privacy Compliance Officer at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
           </section>
 
         </div>

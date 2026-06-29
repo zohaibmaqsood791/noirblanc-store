@@ -15,7 +15,7 @@ export default function RefundPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Returns</h2>
             <p>We offer fast and easy returns on all orders within 30 days of order placement. If 30 days have passed since your purchase, we cannot offer a refund or exchange.</p>
-            <p className="mt-2">To begin the return process, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p className="mt-2">To begin the return process, please contact us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
             <p className="mt-2">To be eligible for a return, your item must be unused, unaltered, and in the same condition you received it, in its original packaging.</p>
             <p className="mt-2">Once your return is received and inspected, we will email you to notify you of receipt and whether your refund has been approved or denied. Please allow 10 days for the refund to be processed once approved.</p>
             <p className="mt-2">This policy applies to transactions in USD. The amount will automatically be converted into the customer's local currency as needed. No restocking charges apply to returns. The cost of the return label is the customer's responsibility.</p>
@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Exchanges</h2>
-            <p>We only replace items if they are defective or damaged. If you need to exchange an item, please contact us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a> for instructions.</p>
+            <p>We only replace items if they are defective or damaged. If you need to exchange an item, please contact us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a> for instructions.</p>
           </section>
 
           <section>
@@ -34,7 +34,7 @@ export default function RefundPolicyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-neutral-900 mb-3">Contact</h2>
-            <p>Questions about returns? Email us at <a href="mailto:hello@noirblancnyc.com" className="underline text-neutral-900">hello@noirblancnyc.com</a>.</p>
+            <p>Questions about returns? Email us at <a href="mailto:hello@noirblancny.com" className="underline text-neutral-900">hello@noirblancny.com</a>.</p>
           </section>
 
         </div>

@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
       fbp,
       fbc,
       externalId,
-      eventSourceUrl: `https://noirblancnyc.com/checkout/success`,
+      eventSourceUrl: `https://noirblancny.com/checkout/success`,
     });
 
     // ── 5. Klaviyo Placed Order (fire-and-forget) ─────────────────────────

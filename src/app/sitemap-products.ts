@@ -44,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getAllProducts();
 
   return products.map((product: any) => ({
-    url: `https://noirblancnyc.com/products/${product.slug}`,
+    url: `https://noirblancny.com/products/${product.slug}`,
     lastModified: product.modified || new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.7,

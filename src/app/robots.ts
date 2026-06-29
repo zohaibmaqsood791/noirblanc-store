@@ -8,9 +8,9 @@ export default function robots(): MetadataRoute.Robots {
       disallow: ["/account", "/checkout", "/api/"],
     },
     sitemap: [
-      "https://www.noirblancnyc.com/sitemap.xml",
-      "https://www.noirblancnyc.com/sitemap-products.xml",
-      "https://www.noirblancnyc.com/sitemap-collections.xml",
+      "https://www.noirblancny.com/sitemap.xml",
+      "https://www.noirblancny.com/sitemap-products.xml",
+      "https://www.noirblancny.com/sitemap-collections.xml",
     ],
   };
 }

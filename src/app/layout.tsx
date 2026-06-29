@@ -25,7 +25,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.noirblancnyc.com"),
+  metadataBase: new URL("https://www.noirblancny.com"),
   // Main headless storefront for Noir & Blanc
   robots: { index: true, follow: true },
   title: {
@@ -43,11 +43,11 @@ export const metadata: Metadata = {
     title: "Luxury Handbags, Exclusive Drops & Special Offers | Noir & Blanc",
     description:
       "Discover Noir & Blanc luxury handbags collection. Sign up for our newsletter to be the first to know about exclusive drops, special offers, and limited product launches. Elevate your style with our timeless, meticulously crafted handbags. Shop the latest trends at Noir & Blanc.",
-    url: "https://www.noirblancnyc.com",
+    url: "https://www.noirblancny.com",
     type: "website",
     images: [
       {
-        // Relative path resolves against metadataBase (www.noirblancnyc.com), served by Vercel
+        // Relative path resolves against metadataBase (www.noirblancny.com), served by Vercel
         url: "/og-image.jpg",
         width: 1200,
         height: 630,

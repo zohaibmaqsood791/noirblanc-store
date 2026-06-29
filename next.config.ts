@@ -62,10 +62,10 @@ const REVIEW_IMG = [
 ];
 
 // ── Our own assets ───────────────────────────────────────────────────────────
-// noirblancnyc.com (root) is NOT covered by *.noirblancnyc.com — list both.
+// noirblancny.com (root) is NOT covered by *.noirblancny.com — list both.
 const OUR_ASSETS = [
-  "https://noirblancnyc.com",
-  "https://*.noirblancnyc.com",
+  "https://noirblancny.com",
+  "https://*.noirblancny.com",
   "https://noirandblancnyc.kinsta.cloud",
   "https://noirblanc.store",
   "https://*.noirblanc.store",
@@ -111,8 +111,8 @@ const nextConfig: NextConfig = {
     imageSizes: [64, 128, 256, 384, 400],
     dangerouslyAllowSVG: true,
     remotePatterns: [
-      { protocol: "https", hostname: "noirblancnyc.com" },
-      { protocol: "https", hostname: "**.noirblancnyc.com" },
+      { protocol: "https", hostname: "noirblancny.com" },
+      { protocol: "https", hostname: "**.noirblancny.com" },
       { protocol: "https", hostname: "noirblanc.store" },
       { protocol: "https", hostname: "**.noirblanc.store" },
       { protocol: "https", hostname: "noirandblancnyc.kinsta.cloud" },
@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       // Proxy all WordPress/WooCommerce API calls through Vercel
-      // Users see requests to noirblancnyc.com instead of noirblanc.store
+      // Users see requests to noirblancny.com instead of noirblanc.store
       {
         source: "/api/wp/:path*",
         destination: "https://noirblanc.store/:path*",
